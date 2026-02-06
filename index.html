@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zero Distance v16 (Critical Break)</title>
+    <title>Zero Distance v17 (Risk Reward Fix)</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -656,7 +656,7 @@ let highScore = 0;
 let frameCount = 0;
 let shakeIntensity = 0;
 let freezeTimer = 0;
-let nextBossScore = 3000;
+let nextBossScore = 20000; // Increased initial threshold (was 3000)
 let bossActive = false;
 
 try {
@@ -776,7 +776,7 @@ function startGame() {
     shakeIntensity = 0;
     freezeTimer = 0;
     frameCount = 0;
-    nextBossScore = 3000;
+    nextBossScore = 20000; // Reset boss score threshold
     bossActive = false;
     
     updateScoreDisplay();
@@ -1534,7 +1534,7 @@ function update() {
 
     if (!bossActive && score >= nextBossScore) {
         spawnBoss();
-        nextBossScore += 8000; // Increased interval
+        nextBossScore += 25000; // Increased interval to allow preparation
         return; 
     }
 
@@ -1573,13 +1573,13 @@ function update() {
             AudioSys.playPowerup();
             
             if (item.type === 'p') {
-                player.powerUpTimer = 900; // Extended
+                player.powerUpTimer = 900; 
                 popups.push(new FloatingText(player.x, player.y - 30, "TRIPLE!", "#fa0", 12));
             } else if (item.type === 's') {
                 player.shield = Math.min(player.shield + 1, 3); 
                 popups.push(new FloatingText(player.x, player.y - 30, "SHIELD UP!", "#0af", 12));
             } else if (item.type === 'r') {
-                player.rapidTimer = 900; // Extended
+                player.rapidTimer = 900; 
                 popups.push(new FloatingText(player.x, player.y - 30, "RAPID!", "#f40", 12));
             } else if (item.type === 'b') {
                 AudioSys.playBomb();
@@ -1587,7 +1587,7 @@ function update() {
                 enemyBullets = []; 
                 enemies.forEach(e => {
                     let dmg = 5;
-                    if(e.isBoss) dmg = 50; // Bomb damage buff against boss
+                    if(e.isBoss) dmg = 50; 
                     e.hp -= dmg;
                     const angle = Math.atan2(e.y - player.y, e.x - player.x);
                     e.vx = Math.cos(angle) * 20;
@@ -1599,13 +1599,13 @@ function update() {
                     particles.push(new Particle(Math.random()*width, Math.random()*height, '#a0f', 10, 30));
                 }
             } else if (item.type === 'l') { 
-                player.laserTimer = 600; // Extended
+                player.laserTimer = 600; 
                 popups.push(new FloatingText(player.x, player.y - 30, "LASER!", "#0ff", 14));
             } else if (item.type === 'h') { 
                 player.shield = 3;
                 popups.push(new FloatingText(player.x, player.y - 30, "FULL REPAIR!", "#0f8", 12));
             } else if (item.type === 'w') { 
-                player.wideTimer = 900; // Extended
+                player.wideTimer = 900; 
                 popups.push(new FloatingText(player.x, player.y - 30, "WIDE SHOT!", "#ff0", 12));
             }
         }
@@ -1651,7 +1651,7 @@ function update() {
                     if (b.piercing) damage = b.damage; 
                     if (!e.isBoss) damage = 100;
                     
-                    if (e.isBoss && e.isStunned) damage *= 4; // Critical Break!
+                    if (e.isBoss && e.isStunned) damage *= 4; 
 
                     e.hp -= damage;
                     
@@ -1669,7 +1669,11 @@ function update() {
                         popups.push(new FloatingText(e.x, e.y, e.isBoss ? "BOSS DESTROYED!" : "ZERO!", "#00ffff", e.isBoss ? 25 : 20));
                         
                         if (!e.isBoss) {
-                             if (Math.random() < 0.20) { 
+                             // Risk Reward Drop System
+                             let dropChance = 0.05; // Base chance for far kills (5%)
+                             if (impactDist < ZERO_DIST) dropChance = 0.4; // High chance for zero dist (40%)
+
+                             if (Math.random() < dropChance) { 
                                 const rand = Math.random();
                                 let type = 'p';
                                 if (rand < 0.15) type = 'p';
@@ -1702,7 +1706,7 @@ function update() {
                 } else if (impactDist < MID_DIST) {
                     if (e.isBoss) {
                         if (!e.isStunned) {
-                            e.stun += 3; // Stun faster
+                            e.stun += 3; 
                             if (e.stun >= e.maxStun) {
                                 e.stun = e.maxStun;
                                 e.isStunned = true;
