@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zero Distance v2</title>
-    <!-- レトロゲーム風フォントの読み込み -->
+    <title>Zero Distance v5</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -12,14 +11,14 @@
             padding: 0;
             background-color: #050505;
             overflow: hidden;
-            font-family: 'Press Start 2P', cursive; /* レトロフォント */
+            font-family: 'Press Start 2P', cursive;
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
+            -webkit-touch-callout: none;
             color: #fff;
         }
         
-        /* ゲーム画面コンテナ（CRTエフェクト用） */
         #game-container {
             position: relative;
             width: 100vw;
@@ -34,7 +33,7 @@
             height: 100%;
         }
 
-        /* --- CRTモニタ風エフェクト (UI/Graphics強化) --- */
+        /* --- CRT Effect --- */
         .scanlines {
             position: absolute;
             top: 0;
@@ -64,7 +63,7 @@
             z-index: 11;
         }
 
-        /* --- UIレイヤー --- */
+        /* --- UI Layer --- */
         #ui-layer {
             position: absolute;
             top: 0;
@@ -78,7 +77,6 @@
             justify-content: space-between;
         }
 
-        /* ヘッダーUI（スコア等） */
         .hud-header {
             display: flex;
             justify-content: space-between;
@@ -86,28 +84,57 @@
             text-shadow: 2px 2px 0 #000;
         }
         
-        .score-box {
-            text-align: left;
+        .score-box { text-align: left; }
+        .score-label { font-size: 10px; color: #aaa; margin-bottom: 5px; display: block; }
+        #score-display { font-size: 20px; color: #fff; }
+
+        .status-box { text-align: right; }
+        .status-label { font-size: 10px; color: #aaa; margin-bottom: 5px; }
+        #shield-display { color: #0ff; font-size: 12px; display: none; }
+
+        /* Boss HP Bar */
+        #boss-hud {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            display: none;
+            text-align: center;
         }
-        .score-label {
-            font-size: 10px;
-            color: #aaa;
-            margin-bottom: 5px;
-            display: block;
+        .boss-name { font-size: 12px; color: #f00; margin-bottom: 5px; text-shadow: 1px 1px 0 #000; }
+        .hp-bar-frame {
+            width: 100%;
+            height: 10px;
+            background: #300;
+            border: 2px solid #fff;
         }
-        #score-display {
-            font-size: 20px;
-            color: #fff;
+        #hp-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: #f00;
+            transition: width 0.1s;
         }
 
-        .risk-gauge {
-            text-align: right;
-            opacity: 0.7;
+        /* Warning Overlay */
+        #warning-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #f00;
+            font-size: 40px;
+            text-align: center;
+            display: none;
+            text-shadow: 4px 4px 0 #000;
+            width: 100%;
+            background: rgba(0,0,0,0.5);
+            padding: 20px 0;
         }
-        .risk-label { font-size: 10px; color: #f00; display: block; margin-bottom: 5px;}
-        .risk-val { font-size: 20px; color: #f00; }
+        .warning-blink { animation: warnBlink 0.2s infinite; }
+        @keyframes warnBlink { 0% {opacity:1;} 50% {opacity:0;} 100% {opacity:1;} }
 
-        /* メインメニュー / ゲームオーバー画面 */
+        /* Start / Game Over */
         #overlay-screen {
             position: absolute;
             top: 50%;
@@ -121,40 +148,15 @@
             border: 4px solid #fff;
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
             min-width: 300px;
+            z-index: 100;
         }
 
-        h1 {
-            font-size: 32px;
-            margin: 0 0 20px 0;
-            color: #fff;
-            text-shadow: 4px 4px 0 #333;
-            line-height: 1.2;
-        }
-        
-        .subtitle {
-            font-size: 12px;
-            color: #f0f;
-            margin-bottom: 30px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .instruction {
-            font-size: 10px;
-            color: #aaa;
-            margin: 10px 0;
-            line-height: 1.6;
-        }
-
-        .blink {
-            animation: blinker 1s steps(2, start) infinite;
-            color: #ffff00;
-            font-size: 14px;
-            margin-top: 30px;
-        }
+        h1 { font-size: 32px; margin: 0 0 20px 0; color: #fff; text-shadow: 4px 4px 0 #333; line-height: 1.2; }
+        .subtitle { font-size: 12px; color: #f0f; margin-bottom: 30px; letter-spacing: 2px; text-transform: uppercase; }
+        .instruction { font-size: 10px; color: #aaa; margin: 10px 0; line-height: 1.6; }
+        .blink { animation: blinker 1s steps(2, start) infinite; color: #ffff00; font-size: 14px; margin-top: 30px; }
         @keyframes blinker { 50% { opacity: 0; } }
         
-        /* モバイル操作ガイド */
         .controls-guide {
             position: absolute;
             bottom: 30px;
@@ -166,8 +168,6 @@
             font-size: 10px;
             color: rgba(255, 255, 255, 0.3);
         }
-
-        /* 隠しクラス */
         .hidden { display: none !important; }
     </style>
 </head>
@@ -176,32 +176,37 @@
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
     
-    <!-- CRTエフェクト -->
     <div class="scanlines"></div>
     <div class="vignette"></div>
 
     <div id="ui-layer">
-        <!-- HUD -->
         <div class="hud-header">
             <div class="score-box">
                 <span class="score-label">SCORE</span>
                 <span id="score-display">000000</span>
             </div>
-            <div class="risk-gauge">
-                <span class="risk-label">DANGER</span>
-                <span class="risk-val">HIGH</span>
+            <div class="status-box">
+                <div id="shield-display">[SHIELD ACTIVE]</div>
             </div>
         </div>
 
-        <!-- Start / Game Over Screen -->
+        <div id="warning-overlay">
+            <div class="warning-blink">WARNING</div>
+            <div style="font-size:16px; margin-top:10px; color:#fff;">HUGE ENERGY DETECTED</div>
+        </div>
+
+        <div id="boss-hud">
+            <div class="boss-name">THE CORE</div>
+            <div class="hp-bar-frame"><div id="hp-bar-fill"></div></div>
+        </div>
+
         <div id="overlay-screen">
             <h1>ZERO<br>DISTANCE</h1>
             <div class="subtitle">Risk It All</div>
             
             <div id="screen-content">
-                <p class="instruction" style="color:#f88;">KILL AT ZERO RANGE.</p>
-                <p class="instruction">FAR SHOTS ARE USELESS.</p>
-                <div class="blink">[ CLICK TO START ]</div>
+                <!-- Javascript will inject content here -->
+                <div class="blink">[ LOADING... ]</div>
             </div>
             
             <div class="instruction" style="margin-top: 30px; font-size: 8px; color: #666;">
@@ -209,7 +214,6 @@
             </div>
         </div>
 
-        <!-- Mobile Controls Hint -->
         <div class="controls-guide" id="mobile-guide" style="display:none;">
             <div>MOVE</div>
             <div>SHOOT</div>
@@ -220,13 +224,10 @@
 <script>
 /**
  * ------------------------------------------------------------------
- * SPRITE SYSTEM (Pixel Art)
- * ドット絵をコード（0/1配列）で定義して描画するシステム
- * 桜井氏の哲学に倣い、正中線を取れる奇数幅を採用
+ * SPRITES (奇数幅・正中線意識)
  * ------------------------------------------------------------------
  */
 const Sprites = {
-    // 11x11 Player Ship (奇数幅で中心を取りやすく)
     player: [
         [0,0,0,0,0,1,0,0,0,0,0],
         [0,0,0,0,1,1,1,0,0,0,0],
@@ -240,7 +241,6 @@ const Sprites = {
         [1,1,0,0,0,0,0,0,0,1,1],
         [1,0,0,0,0,0,0,0,0,0,1]
     ],
-    // 11x11 Enemy (Skull/Alien type)
     enemy: [
         [0,0,0,1,1,1,1,1,0,0,0],
         [0,0,1,1,1,1,1,1,1,0,0],
@@ -253,20 +253,56 @@ const Sprites = {
         [0,0,1,1,1,0,1,1,1,0,0],
         [0,0,1,0,1,0,1,0,1,0,0],
         [0,0,1,0,0,0,0,0,1,0,0]
+    ],
+    // 25x25 Boss Sprite
+    boss: [
+        [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
+        [0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
+        [0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],
+        [0,0,1,1,1,0,0,1,1,1,1,1,1,1,1,1,0,0,1,1,1,0,0,0,0],
+        [0,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,0,0,0],
+        [0,1,1,0,0,1,1,0,0,1,1,1,1,1,0,0,1,1,0,0,1,1,0,0,0],
+        [1,1,1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1,1,1,0,0],
+        [1,1,1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1,1,1,0,0],
+        [1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,0,0],
+        [1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,0,1,1,1,0,0,1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,0],
+        [0,1,1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,0],
+        [0,0,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0],
+        [0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],
+        [0,0,0,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,0,0,0,0,0,0],
+        [0,0,0,0,1,1,0,0,0,1,1,1,1,1,0,0,0,1,1,0,0,0,0,0,0],
+        [0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,0,0,0,0,0,0],
+        [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    ],
+    // 7x7 Items
+    item_p: [
+        [0,1,1,1,1,1,0],
+        [1,1,0,0,0,1,1],
+        [1,0,0,1,0,0,1],
+        [1,0,0,1,0,0,1],
+        [1,0,0,1,0,0,1],
+        [1,1,0,0,0,1,1],
+        [0,1,1,1,1,1,0]
+    ],
+    item_s: [
+        [0,0,1,1,1,0,0],
+        [0,1,1,1,1,1,0],
+        [1,1,0,0,0,1,1],
+        [1,1,0,1,0,1,1],
+        [1,1,0,0,0,1,1],
+        [0,1,1,1,1,1,0],
+        [0,0,1,1,1,0,0]
     ]
 };
 
-/**
- * ピクセルパターンを描画する関数
- * @param {CanvasRenderingContext2D} ctx 
- * @param {Array} pattern 0/1の2次元配列
- * @param {Number} pixelSize 1ドットの描画サイズ
- * @param {String} color 塗りつぶし色
- */
 function drawPixelArt(ctx, pattern, pixelSize, color) {
     const rows = pattern.length;
     const cols = pattern[0].length;
-    // 中心を原点(0,0)にするためのオフセット
     const offsetX = -(cols * pixelSize) / 2;
     const offsetY = -(rows * pixelSize) / 2;
 
@@ -274,12 +310,7 @@ function drawPixelArt(ctx, pattern, pixelSize, color) {
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (pattern[r][c] === 1) {
-                ctx.fillRect(
-                    offsetX + c * pixelSize, 
-                    offsetY + r * pixelSize, 
-                    pixelSize, 
-                    pixelSize
-                );
+                ctx.fillRect(offsetX + c * pixelSize, offsetY + r * pixelSize, pixelSize, pixelSize);
             }
         }
     }
@@ -287,7 +318,7 @@ function drawPixelArt(ctx, pattern, pixelSize, color) {
 
 /**
  * ------------------------------------------------------------------
- * AUDIO SYSTEM (Web Audio API)
+ * AUDIO SYSTEM
  * ------------------------------------------------------------------
  */
 const AudioSys = {
@@ -297,9 +328,7 @@ const AudioSys = {
         this.ctx = new AudioContext();
     },
     resume: function() {
-        if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
     },
     playTone: function(freq, type, duration, vol = 0.1) {
         if (!this.ctx) return;
@@ -315,8 +344,8 @@ const AudioSys = {
         osc.stop(this.ctx.currentTime + duration);
     },
     playShoot: function() {
-        this.playTone(800, 'square', 0.08, 0.05);
-        this.playTone(300, 'sawtooth', 0.08, 0.05);
+        this.playTone(800, 'square', 0.05, 0.05);
+        this.playTone(300, 'sawtooth', 0.05, 0.05);
     },
     playRicochet: function() {
         this.playTone(1200, 'triangle', 0.1, 0.05);
@@ -324,23 +353,28 @@ const AudioSys = {
     playHit: function() {
         this.playTone(150, 'square', 0.1, 0.1);
     },
+    playPowerup: function() {
+        this.playTone(600, 'sine', 0.1, 0.1);
+        setTimeout(() => this.playTone(1200, 'square', 0.2, 0.1), 100);
+    },
+    playWarning: function() {
+        this.playTone(150, 'sawtooth', 0.5, 0.3);
+        setTimeout(() => this.playTone(100, 'sawtooth', 0.5, 0.3), 200);
+    },
     playExplosion: function() {
         if (!this.ctx) return;
         const bufferSize = this.ctx.sampleRate * 0.4;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        
         const noise = this.ctx.createBufferSource();
         noise.buffer = buffer;
         const gain = this.ctx.createGain();
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.value = 800;
-
         gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
-
         noise.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
@@ -351,40 +385,71 @@ const AudioSys = {
 
 /**
  * ------------------------------------------------------------------
- * GAME ENGINE
+ * GAME VARIABLES & HIGH SCORE SYSTEM
  * ------------------------------------------------------------------
  */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score-display');
+const shieldEl = document.getElementById('shield-display');
 const overlayScreen = document.getElementById('overlay-screen');
 const screenContent = document.getElementById('screen-content');
+const warningOverlay = document.getElementById('warning-overlay');
+const bossHud = document.getElementById('boss-hud');
+const hpBarFill = document.getElementById('hp-bar-fill');
 const mobileGuide = document.getElementById('mobile-guide');
 
 let width, height;
 const isMobile = 'ontouchstart' in window;
-
-if (isMobile) {
-    mobileGuide.style.display = 'flex';
-}
+if (isMobile) mobileGuide.style.display = 'flex';
 
 function resize() {
     width = window.innerWidth;
     height = window.innerHeight;
     canvas.width = width;
     canvas.height = height;
-    // ドット感を出すためにアンチエイリアスを切る
     ctx.imageSmoothingEnabled = false;
 }
 window.addEventListener('resize', resize);
 resize();
 
-const STATE = { TITLE: 0, PLAYING: 1, GAMEOVER: 2 };
+const STATE = { TITLE: 0, PLAYING: 1, BOSS_WARNING: 2, GAMEOVER: 3 };
 let currentState = STATE.TITLE;
 let score = 0;
+let highScore = 0; // High Score Variable
 let frameCount = 0;
 let shakeIntensity = 0;
 let freezeTimer = 0;
+let nextBossScore = 3000;
+let bossActive = false;
+
+// --- High Score Logic ---
+// Initialize High Score from Local Storage
+try {
+    const saved = localStorage.getItem('ZeroDistance_HighScore');
+    if (saved) {
+        highScore = parseInt(saved, 10);
+    }
+} catch(e) {
+    console.log("Local Storage not supported");
+}
+
+function showTitleScreen() {
+    currentState = STATE.TITLE;
+    screenContent.innerHTML = `
+        <p class="instruction" style="color:#f88;">KILL AT ZERO RANGE.</p>
+        <p class="instruction">GET ITEMS FROM CLOSE KILLS.</p>
+        <p style="margin-top:20px; color:#ffff00; font-size:12px;">HI-SCORE: ${highScore}</p>
+        <div class="blink" style="margin-top:30px;">[ TAP TO START ]</div>
+    `;
+    overlayScreen.classList.remove('hidden');
+    bossHud.style.display = 'none';
+    warningOverlay.style.display = 'none';
+}
+
+// 初期表示
+showTitleScreen();
+
 
 const Input = {
     keys: {},
@@ -396,17 +461,16 @@ const Input = {
     }
 };
 
-// Input Listeners
+// Input Handling
 window.addEventListener('keydown', e => Input.keys[e.key] = true);
 window.addEventListener('keyup', e => Input.keys[e.key] = false);
 window.addEventListener('mousemove', e => { Input.mouse.x = e.clientX; Input.mouse.y = e.clientY; });
 window.addEventListener('mousedown', () => Input.mouse.down = true);
 window.addEventListener('mouseup', () => Input.mouse.down = false);
 
+// Global Touch Handlers
 window.addEventListener('touchstart', e => {
-    // UIタップの処理は除外しないとスタートできないため注意
     if (e.target.closest('#overlay-screen')) return; 
-
     e.preventDefault();
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
@@ -451,10 +515,17 @@ window.addEventListener('touchend', e => {
     }
 }, { passive: false });
 
-// Overlay Click/Tap
-overlayScreen.addEventListener('click', () => {
-    if (currentState !== STATE.PLAYING) startGame();
-});
+const handleStartInteraction = (e) => {
+    e.stopPropagation();
+    if(e.cancelable && e.type === 'touchstart') e.preventDefault();
+
+    if (currentState !== STATE.PLAYING && currentState !== STATE.BOSS_WARNING) {
+        startGame();
+    }
+};
+
+overlayScreen.addEventListener('mousedown', handleStartInteraction);
+overlayScreen.addEventListener('touchstart', handleStartInteraction, { passive: false });
 
 function startGame() {
     AudioSys.init();
@@ -465,43 +536,69 @@ function startGame() {
     bullets = [];
     particles = [];
     popups = [];
+    items = [];
     score = 0;
     shakeIntensity = 0;
     freezeTimer = 0;
     frameCount = 0;
+    nextBossScore = 3000;
+    bossActive = false;
     
     updateScoreDisplay();
     overlayScreen.classList.add('hidden');
+    bossHud.style.display = 'none';
+    warningOverlay.style.display = 'none';
     currentState = STATE.PLAYING;
     loop();
 }
 
 function updateScoreDisplay() {
-    // ゼロ埋め6桁
     scoreEl.innerText = score.toString().padStart(6, '0');
+    shieldEl.style.display = player && player.shield ? 'block' : 'none';
+}
+
+function spawnBoss() {
+    currentState = STATE.BOSS_WARNING;
+    warningOverlay.style.display = 'block';
+    let count = 0;
+    const interval = setInterval(() => {
+        AudioSys.playWarning();
+        count++;
+        if (count > 3) {
+            clearInterval(interval);
+            setTimeout(() => {
+                warningOverlay.style.display = 'none';
+                currentState = STATE.PLAYING;
+                bossActive = true;
+                enemies.push(new Boss());
+                bossHud.style.display = 'block';
+            }, 1000);
+        }
+    }, 600);
 }
 
 /**
  * ------------------------------------------------------------------
- * ENTITIES
+ * CLASSES
  * ------------------------------------------------------------------
  */
 class Player {
     constructor() {
         this.x = width / 2;
         this.y = height / 2;
-        this.pixelSize = 3; // ドットの大きさ
-        this.size = 11 * this.pixelSize; // 当たり判定用のおおよそのサイズ
+        this.pixelSize = 3; 
+        this.size = 11 * this.pixelSize;
         this.speed = 4;
-        this.angle = 0; // 向き（ドット絵回転用）
-        this.color = '#00ffff'; // サイバーブルー
+        this.angle = 0; 
+        this.color = '#00ffff'; 
         this.shootCooldown = 0;
+        this.powerUpTimer = 0;
+        this.shield = false;
     }
 
     update() {
         let dx = 0;
         let dy = 0;
-
         if (Input.keys['w'] || Input.keys['ArrowUp']) dy -= 1;
         if (Input.keys['s'] || Input.keys['ArrowDown']) dy += 1;
         if (Input.keys['a'] || Input.keys['ArrowLeft']) dx -= 1;
@@ -521,8 +618,6 @@ class Player {
             const length = Math.hypot(dx, dy);
             dx /= length;
             dy /= length;
-            // 移動方向に機体を向ける（オプション）
-            // this.angle = Math.atan2(dy, dx); 
         }
 
         this.x += dx * this.speed;
@@ -531,6 +626,7 @@ class Player {
         this.y = Math.max(this.size, Math.min(height - this.size, this.y));
 
         if (this.shootCooldown > 0) this.shootCooldown--;
+        if (this.powerUpTimer > 0) this.powerUpTimer--;
         
         let shootTarget = null;
         if (Input.mouse.down) {
@@ -540,9 +636,7 @@ class Player {
         }
 
         if (shootTarget) {
-            // マウス/タッチの方向に機体を向ける
             this.angle = Math.atan2(shootTarget.y - this.y, shootTarget.x - this.x);
-            
             if (this.shootCooldown <= 0) {
                 this.shoot();
                 this.shootCooldown = 8;
@@ -552,9 +646,14 @@ class Player {
 
     shoot() {
         const spread = (Math.random() - 0.5) * 0.1;
-        bullets.push(new Bullet(this.x, this.y, this.angle + spread));
+        if (this.powerUpTimer > 0) {
+            bullets.push(new Bullet(this.x, this.y, this.angle + spread));
+            bullets.push(new Bullet(this.x, this.y, this.angle + spread + 0.3));
+            bullets.push(new Bullet(this.x, this.y, this.angle + spread - 0.3));
+        } else {
+            bullets.push(new Bullet(this.x, this.y, this.angle + spread));
+        }
         AudioSys.playShoot();
-        // Recoil
         this.x -= Math.cos(this.angle) * 2;
         this.y -= Math.sin(this.angle) * 2;
     }
@@ -562,14 +661,17 @@ class Player {
     draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle + Math.PI/2); // スプライトが上向きなので補正
-        
-        // ドット絵描画
-        drawPixelArt(ctx, Sprites.player, this.pixelSize, this.color);
-        
+        ctx.rotate(this.angle + Math.PI/2);
+        drawPixelArt(ctx, Sprites.player, this.pixelSize, this.shield ? '#ffffff' : this.color);
+        if (this.shield) {
+            ctx.beginPath();
+            ctx.arc(0, 0, 25, 0, Math.PI*2);
+            ctx.strokeStyle = `rgba(100, 255, 255, ${0.5 + Math.sin(frameCount*0.2)*0.3})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
         ctx.restore();
         
-        // Zero Distance Circle (Visual Aid)
         ctx.beginPath();
         ctx.arc(this.x, this.y, 90, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
@@ -593,9 +695,10 @@ class Enemy {
         this.speed = 1.0 + Math.random() * 2.0;
         this.angle = 0;
         this.hp = 3;
-        this.color = '#ff0044'; // 敵っぽい赤ピンク
+        this.color = '#ff0044';
         this.vx = 0; 
         this.vy = 0;
+        this.isBoss = false;
     }
 
     update() {
@@ -615,13 +718,73 @@ class Enemy {
     draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
-        // 敵は常にプレイヤーの方を向く（スプライトは上向き前提）
         ctx.rotate(this.angle + Math.PI/2);
-        
-        // HPが減ると白っぽく点滅する演出
         const drawColor = (this.hp < 3 && frameCount % 4 < 2) ? '#ffffff' : this.color;
         drawPixelArt(ctx, Sprites.enemy, this.pixelSize, drawColor);
-        
+        ctx.restore();
+    }
+}
+
+class Boss extends Enemy {
+    constructor() {
+        super();
+        this.x = width / 2;
+        this.y = -100;
+        this.pixelSize = 6; 
+        this.size = 25 * this.pixelSize;
+        this.hp = 300;
+        this.maxHp = 300;
+        this.speed = 1.0;
+        this.color = '#aa00ff';
+        this.isBoss = true;
+        this.shootTimer = 0;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= 0.9;
+        this.vy *= 0.9;
+
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        const dist = Math.hypot(dx, dy);
+        this.angle = Math.atan2(dy, dx);
+
+        if (dist > 200) {
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed;
+        } else {
+             this.x -= Math.cos(this.angle) * (this.speed * 0.5);
+             this.y -= Math.sin(this.angle) * (this.speed * 0.5);
+        }
+
+        this.shootTimer++;
+        if (this.shootTimer > 40) {
+            this.shoot();
+            this.shootTimer = 0;
+        }
+
+        this.x = Math.max(this.size, Math.min(width - this.size, this.x));
+        this.y = Math.max(this.size, Math.min(height - this.size, this.y));
+    }
+
+    shoot() {
+        const count = 12;
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 / count) * i + (frameCount * 0.1);
+            enemyBullets.push(new EnemyBullet(this.x, this.y, angle));
+        }
+        AudioSys.playShoot();
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle + Math.PI/2);
+        const blink = (this.hp < 100 && frameCount % 6 < 3);
+        const drawColor = blink ? '#ff0000' : this.color;
+        drawPixelArt(ctx, Sprites.boss, this.pixelSize, drawColor);
         ctx.restore();
     }
 }
@@ -632,7 +795,7 @@ class Bullet {
         this.y = y;
         this.angle = angle;
         this.speed = 14;
-        this.life = 60;
+        this.life = 50;
         this.dead = false;
     }
     update() {
@@ -646,7 +809,55 @@ class Bullet {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
         ctx.fillStyle = '#ffff00';
-        ctx.fillRect(-8, -1.5, 16, 3); // 少し太く
+        ctx.fillRect(-8, -1.5, 16, 3);
+        ctx.restore();
+    }
+}
+
+class EnemyBullet {
+    constructor(x, y, angle) {
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+        this.speed = 4;
+        this.life = 200;
+        this.dead = false;
+        this.size = 8;
+    }
+    update() {
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+        this.life--;
+        if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) this.dead = true;
+    }
+    draw(ctx) {
+        ctx.fillStyle = '#ff00ff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size/2, 0, Math.PI*2);
+        ctx.fill();
+    }
+}
+
+class Item {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type; // 'p' or 's'
+        this.life = 600; 
+        this.pixelSize = 3;
+        this.size = 20;
+    }
+    update() {
+        this.life--;
+        this.y += Math.sin(frameCount * 0.1) * 0.5;
+    }
+    draw(ctx) {
+        if (this.life < 100 && this.life % 10 < 5) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        const sprite = this.type === 'p' ? Sprites.item_p : Sprites.item_s;
+        const color = this.type === 'p' ? '#ffaa00' : '#00aaff';
+        drawPixelArt(ctx, sprite, this.pixelSize, color);
         ctx.restore();
     }
 }
@@ -673,7 +884,6 @@ class Particle {
     }
     draw(ctx) {
         ctx.fillStyle = this.color;
-        // パーティクルも四角形（ピクセル風）
         ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
     }
 }
@@ -696,10 +906,8 @@ class FloatingText {
         ctx.save();
         ctx.globalAlpha = Math.min(1, this.life / 10);
         ctx.fillStyle = this.color;
-        // フォント指定（Google Fonts）
         ctx.font = `${this.size}px "Press Start 2P"`; 
         ctx.textAlign = 'center';
-        // 縁取りで視認性向上
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 3;
         ctx.strokeText(this.text, this.x, this.y);
@@ -711,6 +919,8 @@ class FloatingText {
 let player;
 let enemies = [];
 let bullets = [];
+let enemyBullets = [];
+let items = [];
 let particles = [];
 let popups = [];
 
@@ -720,60 +930,130 @@ function update() {
         return;
     }
 
-    if (frameCount % Math.max(20, 60 - Math.floor(frameCount / 500)) === 0) {
-        enemies.push(new Enemy());
+    // Boss Spawn Logic
+    if (!bossActive && score >= nextBossScore) {
+        spawnBoss();
+        nextBossScore += 5000;
+        return; 
+    }
+
+    // Enemy Spawn
+    if (!bossActive) {
+        if (frameCount % Math.max(20, 60 - Math.floor(frameCount / 500)) === 0) {
+            enemies.push(new Enemy());
+        }
     }
 
     player.update();
 
     bullets.forEach(b => b.update());
     bullets = bullets.filter(b => !b.dead);
+    
+    enemyBullets.forEach(b => b.update());
+    enemyBullets = enemyBullets.filter(b => !b.dead);
+
+    // Items
+    items.forEach(i => i.update());
+    items = items.filter(i => i.life > 0);
+    // Item Pickup
+    items.forEach(item => {
+        const dist = Math.hypot(player.x - item.x, player.y - item.y);
+        if (dist < player.size + item.size) {
+            item.life = 0;
+            AudioSys.playPowerup();
+            if (item.type === 'p') {
+                player.powerUpTimer = 600; 
+                popups.push(new FloatingText(player.x, player.y - 30, "WIDE SHOT!", "#fa0", 12));
+            } else if (item.type === 's') {
+                player.shield = true;
+                popups.push(new FloatingText(player.x, player.y - 30, "SHIELD!", "#0af", 12));
+            }
+        }
+    });
 
     enemies.forEach((e) => {
         e.update();
         
         // Player Collision
         const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
-        if (distToPlayer < (player.size/3 + e.size/3)) { // 判定は少し甘めに（ドット絵なので）
-            gameOver();
+        if (distToPlayer < (player.size/3 + e.size/3)) {
+            if (player.shield) {
+                player.shield = false; 
+                popups.push(new FloatingText(player.x, player.y, "BLOCK!", "#0ff", 15));
+                AudioSys.playRicochet();
+                const angle = Math.atan2(e.y - player.y, e.x - player.x);
+                e.vx = Math.cos(angle) * 15;
+                e.vy = Math.sin(angle) * 15;
+                e.hp -= 1;
+                enemyBullets = [];
+                shakeIntensity = 5;
+            } else {
+                gameOver();
+            }
         }
 
         bullets.forEach(b => {
             if (b.dead) return;
             const distToBullet = Math.hypot(e.x - b.x, e.y - b.y);
+            const hitRadius = e.isBoss ? e.size/2 : e.size/2 + 5;
             
-            if (distToBullet < e.size/2 + 5) {
+            if (distToBullet < hitRadius) {
                 b.dead = true;
                 const impactDist = Math.hypot(player.x - e.x, player.y - e.y);
                 
                 const ZERO_DIST = 90;
                 const MID_DIST = 250;
-
+                
                 if (impactDist < ZERO_DIST) {
-                    // ZERO DISTANCE KILL
-                    e.hp = 0;
-                    freezeTimer = 5;
-                    shakeIntensity = 15;
+                    // ZERO DISTANCE
+                    let damage = 5;
+                    if (!e.isBoss) damage = 100; // 雑魚は即死
                     
-                    for(let i=0; i<15; i++) particles.push(new Particle(e.x, e.y, '#ff0044', 8, 30));
-                    for(let i=0; i<8; i++) particles.push(new Particle(e.x, e.y, '#fff', 5, 20));
+                    e.hp -= damage;
+                    
+                    if (e.isBoss) {
+                        shakeIntensity = 3; 
+                        AudioSys.playHit();
+                    }
 
-                    AudioSys.playExplosion();
-                    score += 1000;
-                    popups.push(new FloatingText(e.x, e.y, "ZERO!", "#00ffff", 20));
+                    if (e.hp <= 0) {
+                        // Kill
+                        freezeTimer = e.isBoss ? 20 : 5; 
+                        shakeIntensity = e.isBoss ? 30 : 15;
+                        AudioSys.playExplosion();
+                        score += e.isBoss ? 5000 : 1000;
+                        popups.push(new FloatingText(e.x, e.y, e.isBoss ? "BOSS DESTROYED!" : "ZERO!", "#00ffff", e.isBoss ? 25 : 20));
+                        
+                        if (!e.isBoss && Math.random() < 0.2) {
+                            items.push(new Item(e.x, e.y, Math.random() > 0.5 ? 'p' : 's'));
+                        }
+
+                        for(let i=0; i< (e.isBoss ? 50 : 15); i++) particles.push(new Particle(e.x, e.y, '#ff0044', 8, 30));
+                        
+                        if (e.isBoss) {
+                            bossActive = false;
+                            bossHud.style.display = 'none';
+                        }
+                    } else {
+                        popups.push(new FloatingText(e.x, e.y, "CRITICAL!", "#ff0", 10));
+                        for(let i=0; i<3; i++) particles.push(new Particle(e.x, e.y, '#fff', 5, 10));
+                    }
 
                 } else if (impactDist < MID_DIST) {
                     // MID RANGE
-                    e.hp -= 1;
+                    if (e.isBoss) {
+                        e.hp -= 0.2; 
+                        AudioSys.playRicochet(); 
+                    } else {
+                        e.hp -= 1;
+                        AudioSys.playHit();
+                    }
+                    
                     const angle = Math.atan2(e.y - player.y, e.x - player.x);
-                    e.vx = Math.cos(angle) * 8;
-                    e.vy = Math.sin(angle) * 8;
+                    e.vx = Math.cos(angle) * (e.isBoss ? 2 : 8); 
+                    e.vy = Math.sin(angle) * (e.isBoss ? 2 : 8);
 
-                    shakeIntensity = 2;
-                    AudioSys.playHit();
-                    for(let i=0; i<3; i++) particles.push(new Particle(b.x, b.y, '#ffaa00', 3, 10));
-
-                    if (e.hp <= 0) {
+                    if (e.hp <= 0 && !e.isBoss) {
                         score += 100;
                         popups.push(new FloatingText(e.x, e.y, "HIT", "#fff", 10));
                         for(let i=0; i<8; i++) particles.push(new Particle(e.x, e.y, '#ff0044', 4, 20));
@@ -787,12 +1067,36 @@ function update() {
             }
         });
     });
+    
+    // Player vs Enemy Bullets
+    enemyBullets.forEach(b => {
+        const dist = Math.hypot(player.x - b.x, player.y - b.y);
+        if (dist < player.size/2 + b.size/2) {
+             if (player.shield) {
+                player.shield = false; 
+                popups.push(new FloatingText(player.x, player.y, "BLOCK!", "#0ff", 15));
+                AudioSys.playRicochet();
+                b.dead = true;
+                shakeIntensity = 5;
+            } else {
+                gameOver();
+            }
+        }
+    });
 
     enemies = enemies.filter(e => e.hp > 0);
     particles.forEach(p => p.update());
     particles = particles.filter(p => p.life > 0);
     popups.forEach(p => p.update());
     popups = popups.filter(p => p.life > 0);
+
+    // Update Boss HUD
+    if (bossActive) {
+        const boss = enemies.find(e => e.isBoss);
+        if (boss) {
+            hpBarFill.style.width = `${(boss.hp / boss.maxHp) * 100}%`;
+        }
+    }
 
     if (shakeIntensity > 0) shakeIntensity *= 0.9;
     if (shakeIntensity < 0.5) shakeIntensity = 0;
@@ -805,7 +1109,6 @@ function draw() {
     ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, width, height);
 
-    // グリッド背景（薄く）
     ctx.strokeStyle = '#222';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -820,13 +1123,14 @@ function draw() {
         ctx.translate(dx, dy);
     }
 
+    items.forEach(i => i.draw(ctx));
     bullets.forEach(b => b.draw(ctx));
+    enemyBullets.forEach(b => b.draw(ctx));
     particles.forEach(p => p.draw(ctx));
     enemies.forEach(e => e.draw(ctx));
     player.draw(ctx);
     popups.forEach(p => p.draw(ctx));
 
-    // Touch Controls Visualizer
     if (Input.touch.leftId !== null) {
         ctx.beginPath();
         ctx.arc(Input.touch.leftStart.x, Input.touch.leftStart.y, 40, 0, Math.PI * 2);
@@ -845,22 +1149,45 @@ function draw() {
 function gameOver() {
     currentState = STATE.GAMEOVER;
     
+    // High Score Update Logic
+    let isNewRecord = false;
+    if (score > highScore) {
+        highScore = score;
+        isNewRecord = true;
+        try {
+            localStorage.setItem('ZeroDistance_HighScore', highScore);
+        } catch(e) {
+            console.log("Failed to save high score");
+        }
+    }
+
+    let newRecordHtml = isNewRecord ? '<p class="blink" style="color:#ffff00; margin-bottom:10px;">NEW RECORD!</p>' : '';
+    let scoreHtml = `<p>SCORE: ${score}</p>`;
+    let highScoreHtml = `<p style="font-size:12px; color:#aaa; margin-top:5px;">HI-SCORE: ${highScore}</p>`;
+
     screenContent.innerHTML = `
-        <p style="color:red; font-size: 24px;">GAME OVER</p>
-        <p style="margin-top:20px;">SCORE: ${score}</p>
+        <p style="color:red; font-size: 24px; margin-bottom:20px;">GAME OVER</p>
+        ${newRecordHtml}
+        ${scoreHtml}
+        ${highScoreHtml}
         <div class="blink" style="margin-top:30px;">[ TRY AGAIN ]</div>
     `;
     overlayScreen.classList.remove('hidden');
-    
+    bossHud.style.display = 'none';
+    warningOverlay.style.display = 'none';
     shakeIntensity = 20;
     AudioSys.playExplosion();
 }
 
 function loop() {
-    if (currentState === STATE.PLAYING) {
+    if (currentState === STATE.PLAYING || currentState === STATE.BOSS_WARNING) {
         requestAnimationFrame(loop);
-        update();
-        draw();
+        if (currentState === STATE.PLAYING) {
+            update();
+            draw();
+        } else if (currentState === STATE.BOSS_WARNING) {
+            draw(); // 背景でゲーム画面は出し続ける
+        }
     }
 }
 </script>
