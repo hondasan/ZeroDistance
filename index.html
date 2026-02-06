@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zero Distance v10</title>
+    <title>Zero Distance v11</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -131,7 +131,7 @@
             background: rgba(0,0,0,0.5);
             padding: 20px 0;
         }
-        .warning-blink { animation: warnBlink 0.1s infinite; }
+        .warning-blink { animation: warnBlink 0.08s infinite; } /* さらに高速点滅 */
         @keyframes warnBlink { 0% {opacity:1;} 50% {opacity:0;} 100% {opacity:1;} }
 
         /* Mobile Shot Button */
@@ -207,7 +207,7 @@
         <div class="hud-header">
             <div class="score-box">
                 <span class="score-label">SCORE</span>
-                <span id="score-display">000000</span>
+                <span id="score-display">000,000</span>
             </div>
             <div class="status-box">
                 <div id="shield-display">[SHIELD ACTIVE]</div>
@@ -554,7 +554,7 @@ function showTitleScreen() {
     screenContent.innerHTML = `
         <p class="instruction" style="color:#f88;">KILL AT ZERO RANGE.</p>
         <p class="instruction">GET ITEMS FROM CLOSE KILLS.</p>
-        <p style="margin-top:20px; color:#ffff00; font-size:12px;">HI-SCORE: ${highScore}</p>
+        <p style="margin-top:20px; color:#ffff00; font-size:12px;">HI-SCORE: ${highScore.toLocaleString()}</p>
         <div class="blink" style="margin-top:30px;">[ TAP TO START ]</div>
     `;
     overlayScreen.classList.remove('hidden');
@@ -680,7 +680,7 @@ function startGame() {
 }
 
 function updateScoreDisplay() {
-    scoreEl.innerText = score.toString().padStart(6, '0');
+    scoreEl.innerText = score.toLocaleString().padStart(6, '0');
     shieldEl.style.display = player && player.shield ? 'block' : 'none';
 }
 
@@ -688,13 +688,13 @@ function spawnBoss() {
     currentState = STATE.BOSS_WARNING;
     warningOverlay.style.display = 'block';
     
-    // ランダムでボスタイプ決定
-    const type = Math.random() > 0.5 ? 0 : 1; // 0:Core, 1:Chaser
+    const type = Math.random() > 0.5 ? 0 : 1; 
     const name = type === 0 ? "THE CORE" : "THE CHASER";
     bossWarningName.innerText = `WARNING: ${name}`;
     bossHudName.innerText = name;
 
     let count = 0;
+    // 警告時間をさらに短縮 (150ms * 4 = 600ms)
     const interval = setInterval(() => {
         AudioSys.playWarning();
         count++;
@@ -706,9 +706,9 @@ function spawnBoss() {
                 bossActive = true;
                 enemies.push(new Boss(type));
                 bossHud.style.display = 'block';
-            }, 500);
+            }, 200); // 待機も短縮
         }
-    }, 300);
+    }, 150);
 }
 
 /**
@@ -729,9 +729,12 @@ class Player {
         this.powerUpTimer = 0;
         this.rapidTimer = 0;
         this.shield = false;
+        this.dead = false; // 死亡フラグ追加
     }
 
     update() {
+        if (this.dead) return; // 死んでたら動かない
+
         let dx = 0;
         let dy = 0;
         if (Input.keys['w'] || Input.keys['ArrowUp']) dy -= 1;
@@ -809,6 +812,8 @@ class Player {
     }
 
     draw(ctx) {
+        if (this.dead) return; // 死んでたら描画しない（爆発エフェクトのみ）
+
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle + Math.PI/2);
@@ -828,6 +833,7 @@ class Player {
         }
         ctx.restore();
         
+        // Zero Distance Circle
         ctx.beginPath();
         ctx.arc(this.x, this.y, 90, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
@@ -857,6 +863,7 @@ class Enemy {
         this.vy = 0;
         this.isBoss = false;
         this.shootTimer = 0;
+        this.isZeroDist = false; // Zero Distance flag for UI
 
         // Apply Type Config
         if (this.type === 1) { // Speedster
@@ -907,15 +914,35 @@ class Enemy {
 
         this.x += Math.cos(this.angle) * moveSpeed;
         this.y += Math.sin(this.angle) * moveSpeed;
+
+        // Zero Distance Check for UI
+        const dist = Math.hypot(dx, dy);
+        this.isZeroDist = (dist < 90);
     }
 
     draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle + Math.PI/2);
-        const drawColor = (this.hp < 3 && frameCount % 4 < 2) ? '#ffffff' : this.color;
+        
+        let drawColor = this.color;
+        if (this.hp < 3 && frameCount % 4 < 2) drawColor = '#ffffff';
+        // Zero Distance Indicator (Color Change)
+        if (this.isZeroDist && frameCount % 4 < 2) drawColor = '#ff00ff';
+
         drawPixelArt(ctx, this.sprite, this.pixelSize, drawColor);
         ctx.restore();
+
+        // Zero Distance Marker
+        if (this.isZeroDist) {
+            ctx.save();
+            ctx.translate(this.x, this.y - 30);
+            ctx.fillStyle = "#ff00ff";
+            ctx.font = "8px 'Press Start 2P'";
+            ctx.textAlign = "center";
+            ctx.fillText("LOCK", 0, 0);
+            ctx.restore();
+        }
     }
 }
 
@@ -946,8 +973,8 @@ class Boss extends Enemy {
 
     update() {
         if (this.entering) {
-            // Entrance logic: Move down slowly
-            this.y += 2;
+            // Entrance logic: Move down faster
+            this.y += 5; // Speed up entrance
             if (this.y > 150) {
                 this.entering = false;
             }
@@ -995,6 +1022,10 @@ class Boss extends Enemy {
 
         this.x = Math.max(this.size, Math.min(width - this.size, this.x));
         this.y = Math.max(this.size, Math.min(height - this.size, this.y));
+        
+        // Zero Distance Check
+        const dist = Math.hypot(dx, dy);
+        this.isZeroDist = (dist < 90);
     }
 
     shootCore() {
@@ -1016,11 +1047,23 @@ class Boss extends Enemy {
             ctx.globalAlpha = 0.5; // Semi-transparent during entrance
         } else {
             if (this.hp < 100 && frameCount % 6 < 3) drawColor = '#ff0000';
+            if (this.isZeroDist && frameCount % 4 < 2) drawColor = '#ff00ff';
         }
         
         drawPixelArt(ctx, this.sprite, this.pixelSize, drawColor);
         ctx.globalAlpha = 1.0;
         ctx.restore();
+
+        // Boss Marker
+        if (this.isZeroDist && !this.entering) {
+            ctx.save();
+            ctx.translate(this.x, this.y - 60);
+            ctx.fillStyle = "#ff00ff";
+            ctx.font = "12px 'Press Start 2P'";
+            ctx.textAlign = "center";
+            ctx.fillText("LOCK!", 0, 0);
+            ctx.restore();
+        }
     }
 }
 
@@ -1178,8 +1221,6 @@ function update() {
 
     if (!bossActive) {
         if (frameCount % Math.max(20, 60 - Math.floor(frameCount / 500)) === 0) {
-            // Random Enemy Type Logic
-            // 0:Normal(50%), 1:Speed(20%), 2:Tank(20%), 3:Shooter(10%)
             let type = 0;
             const r = Math.random();
             if (r < 0.5) type = 0;
@@ -1239,12 +1280,10 @@ function update() {
     enemies.forEach((e) => {
         e.update();
         
-        // Skip collision check if boss is entering
         if (e.isBoss && e.entering) return;
 
         const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
-        // Collision slightly looser
-        if (distToPlayer < (player.size/2 + e.size/2)) {
+        if (!player.dead && distToPlayer < (player.size/2 + e.size/2)) {
             if (player.shield) {
                 player.shield = false; 
                 popups.push(new FloatingText(player.x, player.y, "BLOCK!", "#0ff", 15));
@@ -1256,7 +1295,7 @@ function update() {
                 enemyBullets = [];
                 shakeIntensity = 5;
             } else {
-                gameOver();
+                triggerGameOver(); // 死亡処理へ
             }
         }
 
@@ -1284,7 +1323,7 @@ function update() {
                     }
 
                     if (e.hp <= 0) {
-                        freezeTimer = e.isBoss ? 20 : 5; 
+                        freezeTimer = e.isBoss ? 20 : 8; // ヒットストップ微増
                         shakeIntensity = e.isBoss ? 30 : 15;
                         AudioSys.playExplosion();
                         score += e.isBoss ? 5000 : 1000;
@@ -1341,7 +1380,7 @@ function update() {
     
     enemyBullets.forEach(b => {
         const dist = Math.hypot(player.x - b.x, player.y - b.y);
-        if (dist < player.size/2 + b.size/2) {
+        if (!player.dead && dist < player.size/2 + b.size/2) {
              if (player.shield) {
                 player.shield = false; 
                 popups.push(new FloatingText(player.x, player.y, "BLOCK!", "#0ff", 15));
@@ -1349,7 +1388,7 @@ function update() {
                 b.dead = true;
                 shakeIntensity = 5;
             } else {
-                gameOver();
+                triggerGameOver(); // 死亡処理へ
             }
         }
     });
@@ -1375,7 +1414,10 @@ function update() {
 }
 
 function draw() {
-    ctx.fillStyle = '#111';
+    // 死亡時は背景を赤く
+    if (player.dead) ctx.fillStyle = '#300';
+    else ctx.fillStyle = '#111';
+    
     ctx.fillRect(0, 0, width, height);
 
     ctx.strokeStyle = '#222';
@@ -1415,6 +1457,21 @@ function draw() {
     ctx.restore();
 }
 
+function triggerGameOver() {
+    if (player.dead) return;
+    player.dead = true;
+    freezeTimer = 30; // 長めのストップ（0.5秒）
+    shakeIntensity = 50; // 激しい揺れ
+    AudioSys.playExplosion();
+    // 死亡エフェクト
+    for(let i=0; i<30; i++) {
+        particles.push(new Particle(player.x, player.y, '#00ffff', 10, 50));
+        particles.push(new Particle(player.x, player.y, '#ffffff', 5, 30));
+    }
+    // 少し待ってからゲームオーバー画面へ
+    setTimeout(gameOver, 1000);
+}
+
 function gameOver() {
     currentState = STATE.GAMEOVER;
     
@@ -1430,8 +1487,8 @@ function gameOver() {
     }
 
     let newRecordHtml = isNewRecord ? '<p class="blink" style="color:#ffff00; margin-bottom:10px;">NEW RECORD!</p>' : '';
-    let scoreHtml = `<p>SCORE: ${score}</p>`;
-    let highScoreHtml = `<p style="font-size:12px; color:#aaa; margin-top:5px;">HI-SCORE: ${highScore}</p>`;
+    let scoreHtml = `<p>SCORE: ${score.toLocaleString()}</p>`;
+    let highScoreHtml = `<p style="font-size:12px; color:#aaa; margin-top:5px;">HI-SCORE: ${highScore.toLocaleString()}</p>`;
 
     screenContent.innerHTML = `
         <p style="color:red; font-size: 24px; margin-bottom:20px;">GAME OVER</p>
@@ -1444,8 +1501,6 @@ function gameOver() {
     bossHud.style.display = 'none';
     warningOverlay.style.display = 'none';
     mobileShotBtn.style.display = 'none';
-    shakeIntensity = 20;
-    AudioSys.playExplosion();
 }
 
 function loop() {
