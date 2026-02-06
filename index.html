@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zero Distance v8</title>
+    <title>Zero Distance v9</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -131,7 +131,7 @@
             background: rgba(0,0,0,0.5);
             padding: 20px 0;
         }
-        .warning-blink { animation: warnBlink 0.1s infinite; } /* 点滅速度アップ */
+        .warning-blink { animation: warnBlink 0.1s infinite; }
         @keyframes warnBlink { 0% {opacity:1;} 50% {opacity:0;} 100% {opacity:1;} }
 
         /* Mobile Shot Button */
@@ -216,11 +216,11 @@
 
         <div id="warning-overlay">
             <div class="warning-blink">WARNING</div>
-            <div style="font-size:16px; margin-top:10px; color:#fff;">HUGE ENERGY DETECTED</div>
+            <div id="boss-warning-name" style="font-size:16px; margin-top:10px; color:#fff;">HUGE ENERGY DETECTED</div>
         </div>
 
         <div id="boss-hud">
-            <div class="boss-name">THE CORE</div>
+            <div id="boss-hud-name" class="boss-name">THE CORE</div>
             <div class="hp-bar-frame"><div id="hp-bar-fill"></div></div>
         </div>
 
@@ -264,6 +264,7 @@ const Sprites = {
         [1,1,0,0,0,0,0,0,0,1,1],
         [1,0,0,0,0,0,0,0,0,0,1]
     ],
+    // Normal (Red)
     enemy: [
         [0,0,0,1,1,1,1,1,0,0,0],
         [0,0,1,1,1,1,1,1,1,0,0],
@@ -277,7 +278,50 @@ const Sprites = {
         [0,0,1,0,1,0,1,0,1,0,0],
         [0,0,1,0,0,0,0,0,1,0,0]
     ],
-    boss: [
+    // Speedster (Blue) - Sharp
+    enemy_speed: [
+        [0,0,0,0,0,1,0,0,0,0,0],
+        [0,0,0,0,1,1,1,0,0,0,0],
+        [0,0,0,1,1,1,1,1,0,0,0],
+        [0,0,1,1,1,1,1,1,1,0,0],
+        [0,1,1,0,1,1,1,0,1,1,0],
+        [0,1,0,0,1,1,1,0,0,1,0],
+        [1,1,0,0,1,1,1,0,0,1,1],
+        [1,0,0,0,1,1,1,0,0,0,1],
+        [0,0,0,0,1,0,1,0,0,0,0],
+        [0,0,0,1,1,0,1,1,0,0,0],
+        [0,0,0,1,0,0,0,1,0,0,0]
+    ],
+    // Tank (Green) - Bulky
+    enemy_tank: [
+        [0,0,1,1,1,1,1,1,1,0,0],
+        [0,1,1,1,1,1,1,1,1,1,0],
+        [1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,0,1,1,1,1,1,0,1,1],
+        [1,1,0,1,1,1,1,1,0,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1],
+        [0,1,1,0,0,0,0,0,1,1,0],
+        [0,1,1,0,0,0,0,0,1,1,0],
+        [0,1,1,1,0,0,0,1,1,1,0],
+        [0,0,1,1,1,1,1,1,1,0,0]
+    ],
+    // Shooter (Yellow) - Triangle
+    enemy_shooter: [
+        [0,0,0,0,0,1,0,0,0,0,0],
+        [0,0,0,0,1,1,1,0,0,0,0],
+        [0,0,0,1,1,0,1,1,0,0,0],
+        [0,0,1,1,0,0,0,1,1,0,0],
+        [0,1,1,0,0,1,0,0,1,1,0],
+        [1,1,0,0,1,1,1,0,0,1,1],
+        [1,0,0,1,1,1,1,1,0,0,1],
+        [1,0,1,1,0,0,0,1,1,0,1],
+        [1,1,1,0,0,0,0,0,1,1,1],
+        [0,1,0,0,0,0,0,0,0,1,0],
+        [0,1,0,0,0,0,0,0,0,1,0]
+    ],
+    // Boss Core
+    boss_core: [
         [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
         [0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
         [0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],
@@ -301,6 +345,32 @@ const Sprites = {
         [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]
     ],
+    // Boss Chaser (Spiky)
+    boss_chaser: [
+        [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,1,1,1,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,1,1,1,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,1,1,1,0,0,0,1,0,0,0,1,1,1,0,0,0,0,0,0,0],
+        [0,0,0,0,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0],
+        [0,0,0,1,1,1,0,0,0,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0],
+        [0,0,1,1,1,0,0,0,1,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0],
+        [0,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+        [0,1,1,1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0],
+        [0,0,1,1,1,0,0,0,1,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0],
+        [0,0,0,1,1,1,0,0,0,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0],
+        [0,0,0,0,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0],
+        [0,0,0,0,0,1,1,1,0,0,0,1,0,0,0,1,1,1,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,1,1,1,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,1,1,1,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    ],
     // 7x7 Items
     item_p: [
         [0,1,1,1,1,1,0],
@@ -320,7 +390,6 @@ const Sprites = {
         [0,1,1,1,1,1,0],
         [0,0,1,1,1,0,0]
     ],
-    // New: Rapid (R)
     item_r: [
         [0,1,1,1,1,1,0],
         [1,1,0,0,0,1,1],
@@ -330,7 +399,6 @@ const Sprites = {
         [1,1,0,0,0,1,1],
         [0,1,1,1,1,1,0]
     ],
-    // New: Bomb (B)
     item_b: [
         [0,1,1,1,1,1,0],
         [1,1,0,0,0,1,1],
@@ -405,7 +473,7 @@ const AudioSys = {
         setTimeout(() => this.playTone(50, 'square', 0.5, 0.5), 100);
     },
     playWarning: function() {
-        this.playTone(150, 'sawtooth', 0.2, 0.3); // 短く
+        this.playTone(150, 'sawtooth', 0.2, 0.3);
         setTimeout(() => this.playTone(100, 'sawtooth', 0.2, 0.3), 100);
     },
     playExplosion: function() {
@@ -432,7 +500,7 @@ const AudioSys = {
 
 /**
  * ------------------------------------------------------------------
- * GAME VARIABLES & HIGH SCORE SYSTEM
+ * GAME VARIABLES
  * ------------------------------------------------------------------
  */
 const canvas = document.getElementById('gameCanvas');
@@ -442,7 +510,9 @@ const shieldEl = document.getElementById('shield-display');
 const overlayScreen = document.getElementById('overlay-screen');
 const screenContent = document.getElementById('screen-content');
 const warningOverlay = document.getElementById('warning-overlay');
+const bossWarningName = document.getElementById('boss-warning-name');
 const bossHud = document.getElementById('boss-hud');
+const bossHudName = document.getElementById('boss-hud-name');
 const hpBarFill = document.getElementById('hp-bar-fill');
 const mobileGuide = document.getElementById('mobile-guide');
 const mobileShotBtn = document.getElementById('mobile-shot-btn');
@@ -474,7 +544,6 @@ let freezeTimer = 0;
 let nextBossScore = 3000;
 let bossActive = false;
 
-// High Score
 try {
     const saved = localStorage.getItem('ZeroDistance_HighScore');
     if (saved) highScore = parseInt(saved, 10);
@@ -590,7 +659,7 @@ function startGame() {
     player = new Player();
     enemies = [];
     bullets = [];
-    enemyBullets = []; // ★リトライ時に敵弾を全消去
+    enemyBullets = [];
     particles = [];
     popups = [];
     items = [];
@@ -618,8 +687,14 @@ function updateScoreDisplay() {
 function spawnBoss() {
     currentState = STATE.BOSS_WARNING;
     warningOverlay.style.display = 'block';
+    
+    // ランダムでボスタイプ決定
+    const type = Math.random() > 0.5 ? 0 : 1; // 0:Core, 1:Chaser
+    const name = type === 0 ? "THE CORE" : "THE CHASER";
+    bossWarningName.innerText = `WARNING: ${name}`;
+    bossHudName.innerText = name;
+
     let count = 0;
-    // 演出を短縮 (300ms * 4回 = 1.2秒)
     const interval = setInterval(() => {
         AudioSys.playWarning();
         count++;
@@ -629,9 +704,9 @@ function spawnBoss() {
                 warningOverlay.style.display = 'none';
                 currentState = STATE.PLAYING;
                 bossActive = true;
-                enemies.push(new Boss());
+                enemies.push(new Boss(type));
                 bossHud.style.display = 'block';
-            }, 500); // 待機も短縮
+            }, 500);
         }
     }, 300);
 }
@@ -651,8 +726,8 @@ class Player {
         this.angle = 0; 
         this.color = '#00ffff'; 
         this.shootCooldown = 0;
-        this.powerUpTimer = 0; // Wide Shot
-        this.rapidTimer = 0;   // Rapid Fire (New)
+        this.powerUpTimer = 0;
+        this.rapidTimer = 0;
         this.shield = false;
     }
 
@@ -695,7 +770,6 @@ class Player {
         if (this.powerUpTimer > 0) this.powerUpTimer--;
         if (this.rapidTimer > 0) this.rapidTimer--;
         
-        // Auto Aim
         let nearestEnemy = null;
         let minDist = Infinity;
         const rangeLimit = Math.max(width, height) * 0.9; 
@@ -714,10 +788,8 @@ class Player {
             this.angle = Math.atan2(dy, dx);
         }
 
-        // Manual Fire with Rapid Check
         if (Input.shot.down && this.shootCooldown <= 0) {
             this.shoot();
-            // ラピッドアイテム所持時はクールダウン半減
             this.shootCooldown = this.rapidTimer > 0 ? 4 : 8;
         }
     }
@@ -743,7 +815,7 @@ class Player {
         
         let color = this.color;
         if (this.shield) color = '#ffffff';
-        else if (this.rapidTimer > 0 && frameCount % 4 < 2) color = '#ff8800'; // Rapid時は点滅
+        else if (this.rapidTimer > 0 && frameCount % 4 < 2) color = '#ff8800'; 
         
         drawPixelArt(ctx, Sprites.player, this.pixelSize, color);
         
@@ -767,14 +839,15 @@ class Player {
 }
 
 class Enemy {
-    constructor() {
+    constructor(type = 0) {
+        this.type = type; // 0:Normal, 1:Speed, 2:Tank, 3:Shooter
         const edge = Math.floor(Math.random() * 4);
         if (edge === 0) { this.x = Math.random() * width; this.y = -50; }
         else if (edge === 1) { this.x = width + 50; this.y = Math.random() * height; }
         else if (edge === 2) { this.x = Math.random() * width; this.y = height + 50; }
         else { this.x = -50; this.y = Math.random() * height; }
 
-        this.pixelSize = 3 + Math.random();
+        this.pixelSize = 3;
         this.size = 13 * this.pixelSize;
         this.speed = 1.0 + Math.random() * 2.0;
         this.angle = 0;
@@ -783,6 +856,28 @@ class Enemy {
         this.vx = 0; 
         this.vy = 0;
         this.isBoss = false;
+        this.shootTimer = 0;
+
+        // Apply Type Config
+        if (this.type === 1) { // Speedster
+            this.speed = 4.0 + Math.random();
+            this.hp = 2;
+            this.color = '#0088ff';
+            this.sprite = Sprites.enemy_speed;
+        } else if (this.type === 2) { // Tank
+            this.speed = 0.8;
+            this.hp = 8;
+            this.color = '#00ff00';
+            this.size = 15 * this.pixelSize;
+            this.sprite = Sprites.enemy_tank;
+        } else if (this.type === 3) { // Shooter
+            this.speed = 1.2;
+            this.hp = 3;
+            this.color = '#ffff00';
+            this.sprite = Sprites.enemy_shooter;
+        } else { // Normal
+            this.sprite = Sprites.enemy;
+        }
     }
 
     update() {
@@ -795,8 +890,23 @@ class Enemy {
         const dy = player.y - this.y;
         this.angle = Math.atan2(dy, dx);
         
-        this.x += Math.cos(this.angle) * this.speed;
-        this.y += Math.sin(this.angle) * this.speed;
+        let moveSpeed = this.speed;
+        
+        // Shooter Logic
+        if (this.type === 3) {
+            const dist = Math.hypot(dx, dy);
+            if (dist < 300) moveSpeed = -1; // 逃げる
+            else if (dist < 400) moveSpeed = 0; // 止まる
+            
+            this.shootTimer++;
+            if (this.shootTimer > 120) {
+                enemyBullets.push(new EnemyBullet(this.x, this.y, this.angle));
+                this.shootTimer = 0;
+            }
+        }
+
+        this.x += Math.cos(this.angle) * moveSpeed;
+        this.y += Math.sin(this.angle) * moveSpeed;
     }
 
     draw(ctx) {
@@ -804,14 +914,15 @@ class Enemy {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle + Math.PI/2);
         const drawColor = (this.hp < 3 && frameCount % 4 < 2) ? '#ffffff' : this.color;
-        drawPixelArt(ctx, Sprites.enemy, this.pixelSize, drawColor);
+        drawPixelArt(ctx, this.sprite, this.pixelSize, drawColor);
         ctx.restore();
     }
 }
 
 class Boss extends Enemy {
-    constructor() {
-        super();
+    constructor(type = 0) {
+        super(0);
+        this.bossType = type; // 0:Core, 1:Chaser
         this.x = width / 2;
         this.y = -100;
         this.pixelSize = 6; 
@@ -822,6 +933,14 @@ class Boss extends Enemy {
         this.color = '#aa00ff';
         this.isBoss = true;
         this.shootTimer = 0;
+        
+        if (this.bossType === 1) { // CHASER
+            this.speed = 3.5; // Fast!
+            this.color = '#ff3300';
+            this.sprite = Sprites.boss_chaser;
+        } else { // CORE
+            this.sprite = Sprites.boss_core;
+        }
     }
 
     update() {
@@ -832,28 +951,43 @@ class Boss extends Enemy {
 
         const dx = player.x - this.x;
         const dy = player.y - this.y;
-        const dist = Math.hypot(dx, dy);
         this.angle = Math.atan2(dy, dx);
 
-        if (dist > 200) {
+        if (this.bossType === 0) { // CORE (Danmaku Type)
+            const dist = Math.hypot(dx, dy);
+            if (dist > 200) {
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+            } else {
+                 this.x -= Math.cos(this.angle) * (this.speed * 0.5);
+                 this.y -= Math.sin(this.angle) * (this.speed * 0.5);
+            }
+            this.shootTimer++;
+            if (this.shootTimer > 40) {
+                this.shootCore();
+                this.shootTimer = 0;
+            }
+        } else { // CHASER (Melee Type)
+            // 単純にプレイヤーを追いかける
             this.x += Math.cos(this.angle) * this.speed;
             this.y += Math.sin(this.angle) * this.speed;
-        } else {
-             this.x -= Math.cos(this.angle) * (this.speed * 0.5);
-             this.y -= Math.sin(this.angle) * (this.speed * 0.5);
-        }
-
-        this.shootTimer++;
-        if (this.shootTimer > 40) {
-            this.shoot();
-            this.shootTimer = 0;
+            
+            // ときたま弾を出す
+            this.shootTimer++;
+            if (this.shootTimer > 60) {
+                // 前方に3発
+                for(let i=-1; i<=1; i++) {
+                    enemyBullets.push(new EnemyBullet(this.x, this.y, this.angle + i*0.2));
+                }
+                this.shootTimer = 0;
+            }
         }
 
         this.x = Math.max(this.size, Math.min(width - this.size, this.x));
         this.y = Math.max(this.size, Math.min(height - this.size, this.y));
     }
 
-    shoot() {
+    shootCore() {
         const count = 12;
         for (let i = 0; i < count; i++) {
             const angle = (Math.PI * 2 / count) * i + (frameCount * 0.1);
@@ -868,7 +1002,7 @@ class Boss extends Enemy {
         ctx.rotate(this.angle + Math.PI/2);
         const blink = (this.hp < 100 && frameCount % 6 < 3);
         const drawColor = blink ? '#ff0000' : this.color;
-        drawPixelArt(ctx, Sprites.boss, this.pixelSize, drawColor);
+        drawPixelArt(ctx, this.sprite, this.pixelSize, drawColor);
         ctx.restore();
     }
 }
@@ -926,7 +1060,7 @@ class Item {
     constructor(x, y, type) {
         this.x = x;
         this.y = y;
-        this.type = type; // 'p', 's', 'r', 'b'
+        this.type = type; 
         this.life = 600; 
         this.pixelSize = 3;
         this.size = 20;
@@ -940,7 +1074,6 @@ class Item {
         ctx.save();
         ctx.translate(this.x, this.y);
         let sprite, color;
-        // アイテム描画分岐
         switch(this.type) {
             case 'p': sprite = Sprites.item_p; color = '#ffaa00'; break;
             case 's': sprite = Sprites.item_s; color = '#00aaff'; break;
@@ -1028,7 +1161,16 @@ function update() {
 
     if (!bossActive) {
         if (frameCount % Math.max(20, 60 - Math.floor(frameCount / 500)) === 0) {
-            enemies.push(new Enemy());
+            // Random Enemy Type Logic
+            // 0:Normal(50%), 1:Speed(20%), 2:Tank(20%), 3:Shooter(10%)
+            let type = 0;
+            const r = Math.random();
+            if (r < 0.5) type = 0;
+            else if (r < 0.7) type = 1;
+            else if (r < 0.9) type = 2;
+            else type = 3;
+            
+            enemies.push(new Enemy(type));
         }
     }
 
@@ -1043,7 +1185,6 @@ function update() {
     items.forEach(i => i.update());
     items = items.filter(i => i.life > 0);
     
-    // アイテム取得処理
     items.forEach(item => {
         const dist = Math.hypot(player.x - item.x, player.y - item.y);
         if (dist < player.size + item.size) {
@@ -1057,26 +1198,20 @@ function update() {
                 player.shield = true;
                 popups.push(new FloatingText(player.x, player.y - 30, "SHIELD!", "#0af", 12));
             } else if (item.type === 'r') {
-                player.rapidTimer = 600; // 10秒間連射
+                player.rapidTimer = 600; 
                 popups.push(new FloatingText(player.x, player.y - 30, "RAPID!", "#f40", 12));
             } else if (item.type === 'b') {
-                // Bomb Effect
                 AudioSys.playBomb();
                 shakeIntensity = 20;
-                enemyBullets = []; // 敵弾全消去
-                // 全敵ダメージ
+                enemyBullets = []; 
                 enemies.forEach(e => {
                     e.hp -= 5;
-                    // ノックバック
                     const angle = Math.atan2(e.y - player.y, e.x - player.x);
                     e.vx = Math.cos(angle) * 20;
                     e.vy = Math.sin(angle) * 20;
-                    // エフェクト
                     for(let i=0; i<5; i++) particles.push(new Particle(e.x, e.y, '#fff', 5, 20));
                 });
                 popups.push(new FloatingText(player.x, player.y - 40, "EMP BLAST!", "#d0f", 16));
-                
-                // 画面全体フラッシュ的なパーティクル
                 for(let i=0; i<20; i++) {
                     particles.push(new Particle(Math.random()*width, Math.random()*height, '#a0f', 10, 30));
                 }
@@ -1088,7 +1223,8 @@ function update() {
         e.update();
         
         const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
-        if (distToPlayer < (player.size/3 + e.size/3)) {
+        // Collision slightly looser
+        if (distToPlayer < (player.size/2 + e.size/2)) {
             if (player.shield) {
                 player.shield = false; 
                 popups.push(new FloatingText(player.x, player.y, "BLOCK!", "#0ff", 15));
@@ -1134,8 +1270,7 @@ function update() {
                         score += e.isBoss ? 5000 : 1000;
                         popups.push(new FloatingText(e.x, e.y, e.isBoss ? "BOSS DESTROYED!" : "ZERO!", "#00ffff", e.isBoss ? 25 : 20));
                         
-                        if (!e.isBoss && Math.random() < 0.25) { // ドロップ率微増
-                            // ランダムアイテム選出
+                        if (!e.isBoss && Math.random() < 0.25) { 
                             const rand = Math.random();
                             let type = 'p';
                             if (rand < 0.25) type = 'p';
