@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zero Distance v9</title>
+    <title>Zero Distance v10</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -924,7 +924,7 @@ class Boss extends Enemy {
         super(0);
         this.bossType = type; // 0:Core, 1:Chaser
         this.x = width / 2;
-        this.y = -100;
+        this.y = -200; // Start off-screen
         this.pixelSize = 6; 
         this.size = 25 * this.pixelSize;
         this.hp = 300;
@@ -933,6 +933,7 @@ class Boss extends Enemy {
         this.color = '#aa00ff';
         this.isBoss = true;
         this.shootTimer = 0;
+        this.entering = true; // Entrance phase flag
         
         if (this.bossType === 1) { // CHASER
             this.speed = 3.5; // Fast!
@@ -944,6 +945,15 @@ class Boss extends Enemy {
     }
 
     update() {
+        if (this.entering) {
+            // Entrance logic: Move down slowly
+            this.y += 2;
+            if (this.y > 150) {
+                this.entering = false;
+            }
+            return; // Skip normal update during entrance
+        }
+
         this.x += this.vx;
         this.y += this.vy;
         this.vx *= 0.9;
@@ -1000,9 +1010,16 @@ class Boss extends Enemy {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle + Math.PI/2);
-        const blink = (this.hp < 100 && frameCount % 6 < 3);
-        const drawColor = blink ? '#ff0000' : this.color;
+        
+        let drawColor = this.color;
+        if (this.entering) {
+            ctx.globalAlpha = 0.5; // Semi-transparent during entrance
+        } else {
+            if (this.hp < 100 && frameCount % 6 < 3) drawColor = '#ff0000';
+        }
+        
         drawPixelArt(ctx, this.sprite, this.pixelSize, drawColor);
+        ctx.globalAlpha = 1.0;
         ctx.restore();
     }
 }
@@ -1222,6 +1239,9 @@ function update() {
     enemies.forEach((e) => {
         e.update();
         
+        // Skip collision check if boss is entering
+        if (e.isBoss && e.entering) return;
+
         const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
         // Collision slightly looser
         if (distToPlayer < (player.size/2 + e.size/2)) {
