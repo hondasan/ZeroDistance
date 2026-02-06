@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zero Distance v17 (Risk Reward Fix)</title>
+    <title>Zero Distance v18 (Boss Spawn Fix)</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -1534,7 +1534,7 @@ function update() {
 
     if (!bossActive && score >= nextBossScore) {
         spawnBoss();
-        nextBossScore += 25000; // Increased interval to allow preparation
+        nextBossScore = score + 15000; // 現在のスコア基準で次を設定
         return; 
     }
 
@@ -1670,7 +1670,7 @@ function update() {
                         
                         if (!e.isBoss) {
                              // Risk Reward Drop System
-                             let dropChance = 0.05; // Base chance for far kills (5%)
+                             let dropChance = 0.1; // Base chance for far kills (10%)
                              if (impactDist < ZERO_DIST) dropChance = 0.4; // High chance for zero dist (40%)
 
                              if (Math.random() < dropChance) { 
@@ -1730,7 +1730,7 @@ function update() {
                     }
 
                     if (e.hp <= 0 && !e.isBoss) {
-                        score += 100;
+                        score += 300; // Increased from 100
                         popups.push(new FloatingText(e.x, e.y, "HIT", "#fff", 10));
                         for(let i=0; i<8; i++) particles.push(new Particle(e.x, e.y, '#ff0044', 4, 20));
                     }
