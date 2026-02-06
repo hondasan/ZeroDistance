@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zero Distance v11</title>
+    <title>Zero Distance v14 (Break System)</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -90,9 +90,25 @@
 
         .status-box { text-align: right; }
         .status-label { font-size: 10px; color: #aaa; margin-bottom: 5px; }
-        #shield-display { color: #0ff; font-size: 12px; display: none; }
+        #shield-bar { 
+            display: flex; 
+            gap: 5px; 
+            justify-content: flex-end;
+        }
+        .shield-pip {
+            width: 15px;
+            height: 15px;
+            background: #00ffff;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px #0ff;
+        }
+        .shield-pip.empty {
+            background: transparent;
+            border-color: #444;
+            box-shadow: none;
+        }
 
-        /* Boss HP Bar */
+        /* Boss HUD (Enhanced) */
         #boss-hud {
             position: absolute;
             bottom: 40px;
@@ -108,6 +124,8 @@
             height: 10px;
             background: #300;
             border: 2px solid #fff;
+            margin-bottom: 5px;
+            position: relative;
         }
         #hp-bar-fill {
             width: 100%;
@@ -115,6 +133,20 @@
             background: #f00;
             transition: width 0.1s;
         }
+        /* Stun Gauge */
+        .stun-bar-frame {
+            width: 100%;
+            height: 6px;
+            background: #220;
+            border: 1px solid #880;
+        }
+        #stun-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: #ff0;
+            transition: width 0.1s;
+        }
+        .stun-label { font-size: 8px; color: #ff0; text-align: left; margin-bottom: 2px; }
 
         /* Warning Overlay */
         #warning-overlay {
@@ -131,33 +163,8 @@
             background: rgba(0,0,0,0.5);
             padding: 20px 0;
         }
-        .warning-blink { animation: warnBlink 0.08s infinite; } /* さらに高速点滅 */
+        .warning-blink { animation: warnBlink 0.08s infinite; }
         @keyframes warnBlink { 0% {opacity:1;} 50% {opacity:0;} 100% {opacity:1;} }
-
-        /* Mobile Shot Button */
-        #mobile-shot-btn {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            width: 80px;
-            height: 80px;
-            background: rgba(255, 0, 0, 0.3);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 12px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            pointer-events: auto;
-            user-select: none;
-            touch-action: none;
-            z-index: 100;
-        }
-        #mobile-shot-btn:active {
-            background: rgba(255, 0, 0, 0.6);
-            transform: scale(0.95);
-        }
 
         /* Start / Game Over */
         #overlay-screen {
@@ -210,7 +217,8 @@
                 <span id="score-display">000,000</span>
             </div>
             <div class="status-box">
-                <div id="shield-display">[SHIELD ACTIVE]</div>
+                <div class="status-label">SHIELD</div>
+                <div id="shield-bar"></div>
             </div>
         </div>
 
@@ -222,9 +230,9 @@
         <div id="boss-hud">
             <div id="boss-hud-name" class="boss-name">THE CORE</div>
             <div class="hp-bar-frame"><div id="hp-bar-fill"></div></div>
+            <div class="stun-label">BREAK GAUGE</div>
+            <div class="stun-bar-frame"><div id="stun-bar-fill"></div></div>
         </div>
-
-        <div id="mobile-shot-btn">SHOT</div>
 
         <div id="overlay-screen">
             <h1>ZERO<br>DISTANCE</h1>
@@ -234,12 +242,12 @@
             </div>
             <div class="instruction" style="margin-top: 30px; font-size: 8px; color: #666;">
                 <span style="color:#0ff">AUTO AIM ENABLED</span><br><br>
-                PC: [SPACE] or [CLICK] to SHOOT<br>MOBILE: [SHOT BUTTON] to SHOOT
+                PC: [SPACE] or [CLICK] to SHOOT<br>MOBILE: 2ND FINGER TAP to SHOOT
             </div>
         </div>
 
         <div class="controls-guide" id="mobile-guide" style="display:none;">
-            <div style="margin-right: auto; margin-left: 20px;">DRAG TO MOVE</div>
+            <div style="margin-right: auto; margin-left: 20px;">DRAG: MOVE / TAP: SHOT</div>
         </div>
     </div>
 </div>
@@ -264,7 +272,7 @@ const Sprites = {
         [1,1,0,0,0,0,0,0,0,1,1],
         [1,0,0,0,0,0,0,0,0,0,1]
     ],
-    // Normal (Red)
+    // Enemy Sprites...
     enemy: [
         [0,0,0,1,1,1,1,1,0,0,0],
         [0,0,1,1,1,1,1,1,1,0,0],
@@ -278,7 +286,6 @@ const Sprites = {
         [0,0,1,0,1,0,1,0,1,0,0],
         [0,0,1,0,0,0,0,0,1,0,0]
     ],
-    // Speedster (Blue) - Sharp
     enemy_speed: [
         [0,0,0,0,0,1,0,0,0,0,0],
         [0,0,0,0,1,1,1,0,0,0,0],
@@ -292,7 +299,6 @@ const Sprites = {
         [0,0,0,1,1,0,1,1,0,0,0],
         [0,0,0,1,0,0,0,1,0,0,0]
     ],
-    // Tank (Green) - Bulky
     enemy_tank: [
         [0,0,1,1,1,1,1,1,1,0,0],
         [0,1,1,1,1,1,1,1,1,1,0],
@@ -306,7 +312,6 @@ const Sprites = {
         [0,1,1,1,0,0,0,1,1,1,0],
         [0,0,1,1,1,1,1,1,1,0,0]
     ],
-    // Shooter (Yellow) - Triangle
     enemy_shooter: [
         [0,0,0,0,0,1,0,0,0,0,0],
         [0,0,0,0,1,1,1,0,0,0,0],
@@ -320,7 +325,32 @@ const Sprites = {
         [0,1,0,0,0,0,0,0,0,1,0],
         [0,1,0,0,0,0,0,0,0,1,0]
     ],
-    // Boss Core
+    enemy_sniper: [
+        [0,0,0,0,0,1,0,0,0,0,0],
+        [0,0,0,0,1,1,1,0,0,0,0],
+        [0,0,0,0,1,1,1,0,0,0,0],
+        [0,0,0,0,1,1,1,0,0,0,0],
+        [0,0,0,1,1,1,1,1,0,0,0],
+        [0,0,1,1,0,1,0,1,1,0,0],
+        [0,1,1,1,1,1,1,1,1,1,0],
+        [1,1,0,0,0,1,0,0,0,1,1],
+        [1,0,0,0,0,1,0,0,0,0,1],
+        [0,0,0,0,1,0,1,0,0,0,0],
+        [0,0,0,0,1,0,1,0,0,0,0]
+    ],
+    enemy_splitter: [
+        [0,0,1,1,1,1,1,1,1,0,0],
+        [0,1,1,0,0,1,0,0,1,1,0],
+        [1,1,0,0,0,1,0,0,0,1,1],
+        [1,0,0,0,1,1,1,0,0,0,1],
+        [1,0,0,1,1,1,1,1,0,0,1],
+        [1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,1,1,1,1,1,0,0,1],
+        [1,0,0,0,1,1,1,0,0,0,1],
+        [1,1,0,0,0,1,0,0,0,1,1],
+        [0,1,1,0,0,1,0,0,1,1,0],
+        [0,0,1,1,1,1,1,1,1,0,0]
+    ],
     boss_core: [
         [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
         [0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
@@ -345,7 +375,6 @@ const Sprites = {
         [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]
     ],
-    // Boss Chaser (Spiky)
     boss_chaser: [
         [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -407,6 +436,33 @@ const Sprites = {
         [1,0,0,1,1,0,1],
         [1,1,0,0,0,1,1],
         [0,1,1,1,1,1,0]
+    ],
+    item_l: [ 
+        [0,0,1,1,1,0,0],
+        [0,1,1,1,1,1,0],
+        [1,1,0,1,0,1,1],
+        [1,1,0,1,0,1,1],
+        [1,1,0,1,0,1,1],
+        [0,1,1,1,1,1,0],
+        [0,0,1,1,1,0,0]
+    ],
+    item_h: [ 
+        [0,0,1,0,1,0,0],
+        [0,1,1,1,1,1,0],
+        [1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1],
+        [0,1,1,1,1,1,0],
+        [0,0,1,1,1,0,0],
+        [0,0,0,1,0,0,0]
+    ],
+    item_w: [ 
+        [0,1,1,1,1,1,0],
+        [1,1,0,0,0,1,1],
+        [1,0,1,0,1,0,1],
+        [1,0,1,0,1,0,1],
+        [1,0,1,1,1,0,1],
+        [1,1,0,0,0,1,1],
+        [0,1,1,1,1,1,0]
     ]
 };
 
@@ -457,11 +513,21 @@ const AudioSys = {
         this.playTone(800, 'square', 0.05, 0.05);
         this.playTone(300, 'sawtooth', 0.05, 0.05);
     },
+    playLaser: function() {
+        this.playTone(1200, 'sawtooth', 0.2, 0.1);
+        setTimeout(() => this.playTone(800, 'square', 0.2, 0.1), 50);
+    },
     playRicochet: function() {
         this.playTone(1200, 'triangle', 0.1, 0.05);
     },
     playHit: function() {
         this.playTone(150, 'square', 0.1, 0.1);
+    },
+    playBreak: function() {
+        // ガラスが割れるような高音
+        this.playTone(1500, 'sawtooth', 0.3, 0.2);
+        setTimeout(() => this.playTone(1000, 'square', 0.4, 0.2), 50);
+        setTimeout(() => this.playTone(500, 'sawtooth', 0.5, 0.3), 100);
     },
     playPowerup: function() {
         this.playTone(600, 'sine', 0.1, 0.1);
@@ -506,7 +572,7 @@ const AudioSys = {
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score-display');
-const shieldEl = document.getElementById('shield-display');
+const shieldBar = document.getElementById('shield-bar'); 
 const overlayScreen = document.getElementById('overlay-screen');
 const screenContent = document.getElementById('screen-content');
 const warningOverlay = document.getElementById('warning-overlay');
@@ -514,14 +580,13 @@ const bossWarningName = document.getElementById('boss-warning-name');
 const bossHud = document.getElementById('boss-hud');
 const bossHudName = document.getElementById('boss-hud-name');
 const hpBarFill = document.getElementById('hp-bar-fill');
+const stunBarFill = document.getElementById('stun-bar-fill'); // New Stun Bar
 const mobileGuide = document.getElementById('mobile-guide');
-const mobileShotBtn = document.getElementById('mobile-shot-btn');
 
 let width, height;
 const isMobile = 'ontouchstart' in window;
 if (isMobile) {
     mobileGuide.style.display = 'flex';
-    mobileShotBtn.style.display = 'flex';
 }
 
 function resize() {
@@ -553,14 +618,13 @@ function showTitleScreen() {
     currentState = STATE.TITLE;
     screenContent.innerHTML = `
         <p class="instruction" style="color:#f88;">KILL AT ZERO RANGE.</p>
-        <p class="instruction">GET ITEMS FROM CLOSE KILLS.</p>
+        <p class="instruction">BREAK BOSS ARMOR FROM AFAR.</p>
         <p style="margin-top:20px; color:#ffff00; font-size:12px;">HI-SCORE: ${highScore.toLocaleString()}</p>
         <div class="blink" style="margin-top:30px;">[ TAP TO START ]</div>
     `;
     overlayScreen.classList.remove('hidden');
     bossHud.style.display = 'none';
     warningOverlay.style.display = 'none';
-    mobileShotBtn.style.display = 'none';
 }
 
 showTitleScreen();
@@ -570,10 +634,10 @@ const Input = {
     mouse: { x: 0, y: 0, down: false },
     shot: { down: false },
     touch: {
-        id: null, 
+        moveId: null, // 移動用タッチID
+        shotId: null, // ショット用タッチID
         start: {x:0, y:0},
-        curr: {x:0, y:0},
-        active: false
+        curr: {x:0, y:0}
     }
 };
 
@@ -589,58 +653,53 @@ window.addEventListener('mousemove', e => { Input.mouse.x = e.clientX; Input.mou
 window.addEventListener('mousedown', () => Input.shot.down = true);
 window.addEventListener('mouseup', () => Input.shot.down = false);
 
-mobileShotBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    Input.shot.down = true;
-    mobileShotBtn.style.background = 'rgba(255, 0, 0, 0.6)';
-}, { passive: false });
-
-mobileShotBtn.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    Input.shot.down = false;
-    mobileShotBtn.style.background = 'rgba(255, 0, 0, 0.3)';
-}, { passive: false });
-
+// Multi-touch Handler for "Move & Shot"
 window.addEventListener('touchstart', e => {
-    if (e.target.closest('#mobile-shot-btn') || e.target.closest('#overlay-screen')) return; 
+    if (e.target.closest('#overlay-screen')) return; 
     e.preventDefault();
-    if (!Input.touch.active && e.changedTouches.length > 0) {
-        const t = e.changedTouches[0];
-        Input.touch.id = t.identifier;
-        Input.touch.start = { x: t.clientX, y: t.clientY };
-        Input.touch.curr = { x: t.clientX, y: t.clientY };
-        Input.touch.active = true;
+    
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        
+        // 最初のタッチは移動に割り当て
+        if (Input.touch.moveId === null) {
+            Input.touch.moveId = t.identifier;
+            Input.touch.start = { x: t.clientX, y: t.clientY };
+            Input.touch.curr = { x: t.clientX, y: t.clientY };
+        } 
+        // 2本目のタッチはショットに割り当て（場所問わず）
+        else if (Input.touch.shotId === null) {
+            Input.touch.shotId = t.identifier;
+            Input.shot.down = true;
+        }
     }
 }, { passive: false });
 
 window.addEventListener('touchmove', e => {
     e.preventDefault();
-    if (Input.touch.active) {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            if (e.changedTouches[i].identifier === Input.touch.id) {
-                Input.touch.curr = { x: e.changedTouches[i].clientX, y: e.changedTouches[i].clientY };
-                break;
-            }
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === Input.touch.moveId) {
+            Input.touch.curr = { x: t.clientX, y: t.clientY };
         }
     }
 }, { passive: false });
 
 window.addEventListener('touchend', e => {
     e.preventDefault();
-    if (Input.touch.active) {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            if (e.changedTouches[i].identifier === Input.touch.id) {
-                Input.touch.active = false;
-                Input.touch.id = null;
-                break;
-            }
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === Input.touch.moveId) {
+            Input.touch.moveId = null;
+        }
+        if (t.identifier === Input.touch.shotId) {
+            Input.touch.shotId = null;
+            Input.shot.down = false;
         }
     }
 }, { passive: false });
 
 const handleStartInteraction = (e) => {
-    if (e.target.closest('#mobile-shot-btn')) return;
     e.stopPropagation();
     if(e.cancelable && e.type === 'touchstart') e.preventDefault();
 
@@ -674,14 +733,21 @@ function startGame() {
     overlayScreen.classList.add('hidden');
     bossHud.style.display = 'none';
     warningOverlay.style.display = 'none';
-    if (isMobile) mobileShotBtn.style.display = 'flex';
     currentState = STATE.PLAYING;
     loop();
 }
 
 function updateScoreDisplay() {
     scoreEl.innerText = score.toLocaleString().padStart(6, '0');
-    shieldEl.style.display = player && player.shield ? 'block' : 'none';
+    // Shield UI
+    shieldBar.innerHTML = '';
+    if (player) {
+        for(let i=0; i<3; i++) {
+            const pip = document.createElement('div');
+            pip.className = 'shield-pip' + (i < player.shield ? '' : ' empty');
+            shieldBar.appendChild(pip);
+        }
+    }
 }
 
 function spawnBoss() {
@@ -694,7 +760,6 @@ function spawnBoss() {
     bossHudName.innerText = name;
 
     let count = 0;
-    // 警告時間をさらに短縮 (150ms * 4 = 600ms)
     const interval = setInterval(() => {
         AudioSys.playWarning();
         count++;
@@ -706,7 +771,7 @@ function spawnBoss() {
                 bossActive = true;
                 enemies.push(new Boss(type));
                 bossHud.style.display = 'block';
-            }, 200); // 待機も短縮
+            }, 200);
         }
     }, 150);
 }
@@ -728,12 +793,14 @@ class Player {
         this.shootCooldown = 0;
         this.powerUpTimer = 0;
         this.rapidTimer = 0;
-        this.shield = false;
-        this.dead = false; // 死亡フラグ追加
+        this.laserTimer = 0; 
+        this.wideTimer = 0;  
+        this.shield = 1;     
+        this.dead = false; 
     }
 
     update() {
-        if (this.dead) return; // 死んでたら動かない
+        if (this.dead) return;
 
         let dx = 0;
         let dy = 0;
@@ -742,7 +809,7 @@ class Player {
         if (Input.keys['a'] || Input.keys['ArrowLeft']) dx -= 1;
         if (Input.keys['d'] || Input.keys['ArrowRight']) dx += 1;
 
-        if (Input.touch.active) {
+        if (Input.touch.moveId !== null) {
             const tx = Input.touch.curr.x - Input.touch.start.x;
             const ty = Input.touch.curr.y - Input.touch.start.y;
             const dist = Math.hypot(tx, ty);
@@ -756,7 +823,7 @@ class Player {
             }
         }
 
-        if (!Input.touch.active && (dx !== 0 || dy !== 0)) {
+        if (Input.touch.moveId === null && (dx !== 0 || dy !== 0)) {
             const length = Math.hypot(dx, dy);
             if (length > 1) { 
                 dx /= length;
@@ -772,6 +839,8 @@ class Player {
         if (this.shootCooldown > 0) this.shootCooldown--;
         if (this.powerUpTimer > 0) this.powerUpTimer--;
         if (this.rapidTimer > 0) this.rapidTimer--;
+        if (this.laserTimer > 0) this.laserTimer--;
+        if (this.wideTimer > 0) this.wideTimer--;
         
         let nearestEnemy = null;
         let minDist = Infinity;
@@ -793,47 +862,68 @@ class Player {
 
         if (Input.shot.down && this.shootCooldown <= 0) {
             this.shoot();
-            this.shootCooldown = this.rapidTimer > 0 ? 4 : 8;
+            this.shootCooldown = this.rapidTimer > 0 ? 4 : (this.laserTimer > 0 ? 25 : 8);
         }
     }
 
     shoot() {
         const spread = (Math.random() - 0.5) * 0.1;
-        if (this.powerUpTimer > 0) {
+        
+        if (this.laserTimer > 0) {
+            // Laser Shot
+            bullets.push(new Bullet(this.x, this.y, this.angle, true)); // piercing
+            AudioSys.playLaser();
+            shakeIntensity = 5;
+            this.x -= Math.cos(this.angle) * 8; // Heavy recoil
+            this.y -= Math.sin(this.angle) * 8;
+        } else if (this.wideTimer > 0) {
+            // 5-Way Wide
+            for(let i = -2; i <= 2; i++) {
+                bullets.push(new Bullet(this.x, this.y, this.angle + spread + (i * 0.15)));
+            }
+            AudioSys.playShoot();
+            this.x -= Math.cos(this.angle) * 3;
+            this.y -= Math.sin(this.angle) * 3;
+        } else if (this.powerUpTimer > 0) {
+            // 3-Way
             bullets.push(new Bullet(this.x, this.y, this.angle + spread));
             bullets.push(new Bullet(this.x, this.y, this.angle + spread + 0.3));
             bullets.push(new Bullet(this.x, this.y, this.angle + spread - 0.3));
+            AudioSys.playShoot();
+            this.x -= Math.cos(this.angle) * 2;
+            this.y -= Math.sin(this.angle) * 2;
         } else {
+            // Normal
             bullets.push(new Bullet(this.x, this.y, this.angle + spread));
+            AudioSys.playShoot();
+            this.x -= Math.cos(this.angle) * 2;
+            this.y -= Math.sin(this.angle) * 2;
         }
-        AudioSys.playShoot();
-        this.x -= Math.cos(this.angle) * 2;
-        this.y -= Math.sin(this.angle) * 2;
     }
 
     draw(ctx) {
-        if (this.dead) return; // 死んでたら描画しない（爆発エフェクトのみ）
+        if (this.dead) return;
 
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle + Math.PI/2);
         
         let color = this.color;
-        if (this.shield) color = '#ffffff';
+        if (this.shield > 0) color = '#ffffff';
+        else if (this.laserTimer > 0) color = '#0088ff';
         else if (this.rapidTimer > 0 && frameCount % 4 < 2) color = '#ff8800'; 
         
         drawPixelArt(ctx, Sprites.player, this.pixelSize, color);
         
-        if (this.shield) {
+        if (this.shield > 0) {
             ctx.beginPath();
             ctx.arc(0, 0, 25, 0, Math.PI*2);
-            ctx.strokeStyle = `rgba(100, 255, 255, ${0.5 + Math.sin(frameCount*0.2)*0.3})`;
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = `rgba(100, 255, 255, ${0.3 + (this.shield * 0.2)})`;
+            ctx.lineWidth = 1 + this.shield;
             ctx.stroke();
         }
         ctx.restore();
         
-        // Zero Distance Circle
         ctx.beginPath();
         ctx.arc(this.x, this.y, 90, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
@@ -846,7 +936,7 @@ class Player {
 
 class Enemy {
     constructor(type = 0) {
-        this.type = type; // 0:Normal, 1:Speed, 2:Tank, 3:Shooter
+        this.type = type; 
         const edge = Math.floor(Math.random() * 4);
         if (edge === 0) { this.x = Math.random() * width; this.y = -50; }
         else if (edge === 1) { this.x = width + 50; this.y = Math.random() * height; }
@@ -863,26 +953,35 @@ class Enemy {
         this.vy = 0;
         this.isBoss = false;
         this.shootTimer = 0;
-        this.isZeroDist = false; // Zero Distance flag for UI
+        this.isZeroDist = false;
 
-        // Apply Type Config
-        if (this.type === 1) { // Speedster
+        if (this.type === 1) { 
             this.speed = 4.0 + Math.random();
             this.hp = 2;
             this.color = '#0088ff';
             this.sprite = Sprites.enemy_speed;
-        } else if (this.type === 2) { // Tank
+        } else if (this.type === 2) { 
             this.speed = 0.8;
             this.hp = 8;
             this.color = '#00ff00';
             this.size = 15 * this.pixelSize;
             this.sprite = Sprites.enemy_tank;
-        } else if (this.type === 3) { // Shooter
+        } else if (this.type === 3) { 
             this.speed = 1.2;
             this.hp = 3;
             this.color = '#ffff00';
             this.sprite = Sprites.enemy_shooter;
-        } else { // Normal
+        } else if (this.type === 4) { 
+            this.speed = 1.5;
+            this.hp = 4;
+            this.color = '#aa00ff';
+            this.sprite = Sprites.enemy_sniper;
+        } else if (this.type === 5) { 
+            this.speed = 1.0;
+            this.hp = 5;
+            this.color = '#ff8800';
+            this.sprite = Sprites.enemy_splitter;
+        } else { 
             this.sprite = Sprites.enemy;
         }
     }
@@ -898,16 +997,27 @@ class Enemy {
         this.angle = Math.atan2(dy, dx);
         
         let moveSpeed = this.speed;
-        
-        // Shooter Logic
-        if (this.type === 3) {
-            const dist = Math.hypot(dx, dy);
-            if (dist < 300) moveSpeed = -1; // 逃げる
-            else if (dist < 400) moveSpeed = 0; // 止まる
+        const dist = Math.hypot(dx, dy);
+
+        if (this.type === 3) { 
+            if (dist < 300) moveSpeed = -1;
+            else if (dist < 400) moveSpeed = 0;
             
             this.shootTimer++;
             if (this.shootTimer > 120) {
                 enemyBullets.push(new EnemyBullet(this.x, this.y, this.angle));
+                this.shootTimer = 0;
+            }
+        } else if (this.type === 4) { 
+            if (dist < 500) moveSpeed = -1.5;
+            else if (dist < 600) moveSpeed = 0;
+            
+            this.shootTimer++;
+            if (this.shootTimer > 180) { 
+                let b = new EnemyBullet(this.x, this.y, this.angle);
+                b.speed = 8; 
+                b.size = 4;
+                enemyBullets.push(b);
                 this.shootTimer = 0;
             }
         }
@@ -915,8 +1025,6 @@ class Enemy {
         this.x += Math.cos(this.angle) * moveSpeed;
         this.y += Math.sin(this.angle) * moveSpeed;
 
-        // Zero Distance Check for UI
-        const dist = Math.hypot(dx, dy);
         this.isZeroDist = (dist < 90);
     }
 
@@ -927,13 +1035,11 @@ class Enemy {
         
         let drawColor = this.color;
         if (this.hp < 3 && frameCount % 4 < 2) drawColor = '#ffffff';
-        // Zero Distance Indicator (Color Change)
         if (this.isZeroDist && frameCount % 4 < 2) drawColor = '#ff00ff';
 
         drawPixelArt(ctx, this.sprite, this.pixelSize, drawColor);
         ctx.restore();
 
-        // Zero Distance Marker
         if (this.isZeroDist) {
             ctx.save();
             ctx.translate(this.x, this.y - 30);
@@ -951,7 +1057,7 @@ class Boss extends Enemy {
         super(0);
         this.bossType = type; // 0:Core, 1:Chaser
         this.x = width / 2;
-        this.y = -200; // Start off-screen
+        this.y = -200; 
         this.pixelSize = 6; 
         this.size = 25 * this.pixelSize;
         this.hp = 300;
@@ -960,25 +1066,64 @@ class Boss extends Enemy {
         this.color = '#aa00ff';
         this.isBoss = true;
         this.shootTimer = 0;
-        this.entering = true; // Entrance phase flag
+        this.entering = true; 
+        this.dropped50 = false; 
+        this.dropped20 = false;
         
-        if (this.bossType === 1) { // CHASER
-            this.speed = 3.5; // Fast!
+        // --- Stun System ---
+        this.stun = 0;
+        this.maxStun = 100;
+        this.isStunned = false;
+        this.stunTimer = 0;
+
+        if (this.bossType === 1) { 
+            this.speed = 4.0; 
             this.color = '#ff3300';
             this.sprite = Sprites.boss_chaser;
-        } else { // CORE
+            this.state = 'chase'; 
+            this.stateTimer = 0;
+        } else { 
             this.sprite = Sprites.boss_core;
         }
     }
 
     update() {
         if (this.entering) {
-            // Entrance logic: Move down faster
-            this.y += 5; // Speed up entrance
+            this.y += 5; 
             if (this.y > 150) {
                 this.entering = false;
             }
-            return; // Skip normal update during entrance
+            return; 
+        }
+
+        // Stun Logic
+        if (this.isStunned) {
+            this.stunTimer--;
+            if (this.stunTimer <= 0) {
+                this.isStunned = false;
+                this.stun = 0;
+                popups.push(new FloatingText(this.x, this.y - 60, "RECOVER!", "#fff", 15));
+            }
+            // Stunned behavior: Shake slightly
+            this.x += (Math.random()-0.5) * 2;
+            this.y += (Math.random()-0.5) * 2;
+            return; // Skip normal behavior
+        } else {
+            // Natural Stun decay
+            if (this.stun > 0) this.stun -= 0.1;
+        }
+
+        // Drops
+        const hpPercent = this.hp / this.maxHp;
+        if (!this.dropped50 && hpPercent <= 0.5) {
+            this.dropped50 = true;
+            items.push(new Item(this.x, this.y, 'h')); 
+            AudioSys.playPowerup();
+        }
+        if (!this.dropped20 && hpPercent <= 0.2) {
+            this.dropped20 = true;
+            items.push(new Item(this.x, this.y, Math.random()>0.5 ? 'b' : 'l')); 
+            AudioSys.playPowerup();
         }
 
         this.x += this.vx;
@@ -990,7 +1135,7 @@ class Boss extends Enemy {
         const dy = player.y - this.y;
         this.angle = Math.atan2(dy, dx);
 
-        if (this.bossType === 0) { // CORE (Danmaku Type)
+        if (this.bossType === 0) { // CORE
             const dist = Math.hypot(dx, dy);
             if (dist > 200) {
                 this.x += Math.cos(this.angle) * this.speed;
@@ -1000,30 +1145,39 @@ class Boss extends Enemy {
                  this.y -= Math.sin(this.angle) * (this.speed * 0.5);
             }
             this.shootTimer++;
-            if (this.shootTimer > 40) {
+            if (this.shootTimer > 50) { 
                 this.shootCore();
                 this.shootTimer = 0;
             }
-        } else { // CHASER (Melee Type)
-            // 単純にプレイヤーを追いかける
-            this.x += Math.cos(this.angle) * this.speed;
-            this.y += Math.sin(this.angle) * this.speed;
-            
-            // ときたま弾を出す
-            this.shootTimer++;
-            if (this.shootTimer > 60) {
-                // 前方に3発
-                for(let i=-1; i<=1; i++) {
+        } else { // CHASER
+            this.stateTimer++;
+            if (this.state === 'chase') {
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+                if (this.stateTimer > 180) { 
+                    this.state = 'tired';
+                    this.stateTimer = 0;
+                    this.color = '#555555'; 
+                }
+            } else { 
+                this.x += Math.cos(this.angle) * 0.2;
+                this.y += Math.sin(this.angle) * 0.2;
+                if (this.stateTimer > 120) { 
+                    this.state = 'chase';
+                    this.stateTimer = 0;
+                    this.color = '#ff3300';
+                }
+            }
+            if (frameCount % 100 === 0 && this.state === 'chase') {
+                 for(let i=-1; i<=1; i++) {
                     enemyBullets.push(new EnemyBullet(this.x, this.y, this.angle + i*0.2));
                 }
-                this.shootTimer = 0;
             }
         }
 
         this.x = Math.max(this.size, Math.min(width - this.size, this.x));
         this.y = Math.max(this.size, Math.min(height - this.size, this.y));
         
-        // Zero Distance Check
         const dist = Math.hypot(dx, dy);
         this.isZeroDist = (dist < 90);
     }
@@ -1031,8 +1185,10 @@ class Boss extends Enemy {
     shootCore() {
         const count = 12;
         for (let i = 0; i < count; i++) {
-            const angle = (Math.PI * 2 / count) * i + (frameCount * 0.1);
-            enemyBullets.push(new EnemyBullet(this.x, this.y, angle));
+            const angle = (Math.PI * 2 / count) * i + (frameCount * 0.05); 
+            let b = new EnemyBullet(this.x, this.y, angle);
+            b.speed = 3.5; 
+            enemyBullets.push(b);
         }
         AudioSys.playShoot();
     }
@@ -1044,17 +1200,22 @@ class Boss extends Enemy {
         
         let drawColor = this.color;
         if (this.entering) {
-            ctx.globalAlpha = 0.5; // Semi-transparent during entrance
+            ctx.globalAlpha = 0.5; 
+        } else if (this.isStunned) {
+            // Stun color (Blue flash)
+            drawColor = frameCount % 4 < 2 ? '#00ffff' : '#0000ff';
         } else {
             if (this.hp < 100 && frameCount % 6 < 3) drawColor = '#ff0000';
             if (this.isZeroDist && frameCount % 4 < 2) drawColor = '#ff00ff';
+            if (this.bossType === 1 && this.state === 'tired') {
+                 if (frameCount % 20 < 10) drawColor = '#888888';
+            }
         }
         
         drawPixelArt(ctx, this.sprite, this.pixelSize, drawColor);
         ctx.globalAlpha = 1.0;
         ctx.restore();
 
-        // Boss Marker
         if (this.isZeroDist && !this.entering) {
             ctx.save();
             ctx.translate(this.x, this.y - 60);
@@ -1064,17 +1225,38 @@ class Boss extends Enemy {
             ctx.fillText("LOCK!", 0, 0);
             ctx.restore();
         }
+        
+        // Show "CHANCE" or "BREAK"
+        if (this.isStunned) {
+            ctx.save();
+            ctx.translate(this.x, this.y + 60);
+            ctx.fillStyle = "#00ffff";
+            ctx.font = "14px 'Press Start 2P'";
+            ctx.textAlign = "center";
+            ctx.fillText("BREAK!!", 0, 0);
+            ctx.restore();
+        } else if (this.bossType === 1 && this.state === 'tired') {
+            ctx.save();
+            ctx.translate(this.x, this.y + 60);
+            ctx.fillStyle = "#00ff00";
+            ctx.font = "10px 'Press Start 2P'";
+            ctx.textAlign = "center";
+            ctx.fillText("CHANCE!", 0, 0);
+            ctx.restore();
+        }
     }
 }
 
 class Bullet {
-    constructor(x, y, angle) {
+    constructor(x, y, angle, piercing = false) {
         this.x = x;
         this.y = y;
         this.angle = angle;
-        this.speed = 14;
-        this.life = 50;
+        this.speed = piercing ? 20 : 14;
+        this.life = piercing ? 30 : 50;
         this.dead = false;
+        this.piercing = piercing;
+        this.size = piercing ? 8 : 4;
     }
     update() {
         this.x += Math.cos(this.angle) * this.speed;
@@ -1086,9 +1268,17 @@ class Bullet {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
-        ctx.fillStyle = '#ffff00';
-        ctx.fillRect(-8, -1.5, 16, 3);
+        if (this.piercing) {
+            ctx.fillStyle = '#00ffff';
+            ctx.fillRect(-20, -2, 40, 4); 
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#00ffff";
+        } else {
+            ctx.fillStyle = '#ffff00';
+            ctx.fillRect(-8, -1.5, 16, 3);
+        }
         ctx.restore();
+        ctx.shadowBlur = 0;
     }
 }
 
@@ -1139,6 +1329,9 @@ class Item {
             case 's': sprite = Sprites.item_s; color = '#00aaff'; break;
             case 'r': sprite = Sprites.item_r; color = '#ff4400'; break;
             case 'b': sprite = Sprites.item_b; color = '#aa00ff'; break;
+            case 'l': sprite = Sprites.item_l; color = '#00ffff'; break;
+            case 'h': sprite = Sprites.item_h; color = '#00ff88'; break; 
+            case 'w': sprite = Sprites.item_w; color = '#ffff00'; break;
         }
         drawPixelArt(ctx, sprite, this.pixelSize, color);
         ctx.restore();
@@ -1223,10 +1416,12 @@ function update() {
         if (frameCount % Math.max(20, 60 - Math.floor(frameCount / 500)) === 0) {
             let type = 0;
             const r = Math.random();
-            if (r < 0.5) type = 0;
-            else if (r < 0.7) type = 1;
-            else if (r < 0.9) type = 2;
-            else type = 3;
+            if (r < 0.4) type = 0; 
+            else if (r < 0.6) type = 1; 
+            else if (r < 0.75) type = 2; 
+            else if (r < 0.85) type = 3; 
+            else if (r < 0.95) type = 4; 
+            else type = 5; 
             
             enemies.push(new Enemy(type));
         }
@@ -1251,10 +1446,10 @@ function update() {
             
             if (item.type === 'p') {
                 player.powerUpTimer = 600; 
-                popups.push(new FloatingText(player.x, player.y - 30, "WIDE SHOT!", "#fa0", 12));
+                popups.push(new FloatingText(player.x, player.y - 30, "TRIPLE!", "#fa0", 12));
             } else if (item.type === 's') {
-                player.shield = true;
-                popups.push(new FloatingText(player.x, player.y - 30, "SHIELD!", "#0af", 12));
+                player.shield = Math.min(player.shield + 1, 3); 
+                popups.push(new FloatingText(player.x, player.y - 30, "SHIELD UP!", "#0af", 12));
             } else if (item.type === 'r') {
                 player.rapidTimer = 600; 
                 popups.push(new FloatingText(player.x, player.y - 30, "RAPID!", "#f40", 12));
@@ -1273,6 +1468,15 @@ function update() {
                 for(let i=0; i<20; i++) {
                     particles.push(new Particle(Math.random()*width, Math.random()*height, '#a0f', 10, 30));
                 }
+            } else if (item.type === 'l') { 
+                player.laserTimer = 400; 
+                popups.push(new FloatingText(player.x, player.y - 30, "LASER!", "#0ff", 14));
+            } else if (item.type === 'h') { 
+                player.shield = 3;
+                popups.push(new FloatingText(player.x, player.y - 30, "FULL REPAIR!", "#0f8", 12));
+            } else if (item.type === 'w') { 
+                player.wideTimer = 600;
+                popups.push(new FloatingText(player.x, player.y - 30, "WIDE SHOT!", "#ff0", 12));
             }
         }
     });
@@ -1284,18 +1488,18 @@ function update() {
 
         const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
         if (!player.dead && distToPlayer < (player.size/2 + e.size/2)) {
-            if (player.shield) {
-                player.shield = false; 
-                popups.push(new FloatingText(player.x, player.y, "BLOCK!", "#0ff", 15));
+            if (player.shield > 0) {
+                player.shield--; 
+                popups.push(new FloatingText(player.x, player.y, "SHIELD LOST!", "#0ff", 10));
                 AudioSys.playRicochet();
                 const angle = Math.atan2(e.y - player.y, e.x - player.x);
                 e.vx = Math.cos(angle) * 15;
                 e.vy = Math.sin(angle) * 15;
                 e.hp -= 1;
                 enemyBullets = [];
-                shakeIntensity = 5;
+                shakeIntensity = 10;
             } else {
-                triggerGameOver(); // 死亡処理へ
+                triggerGameOver(); 
             }
         }
 
@@ -1305,16 +1509,21 @@ function update() {
             const hitRadius = e.isBoss ? e.size/2 : e.size/2 + 5;
             
             if (distToBullet < hitRadius) {
-                b.dead = true;
+                if (!b.piercing) b.dead = true; 
+                
                 const impactDist = Math.hypot(player.x - e.x, player.y - e.y);
-                
                 const ZERO_DIST = 90;
-                const MID_DIST = 250;
+                const MID_DIST = 350; // Increased range for Stun build-up
                 
-                if (impactDist < ZERO_DIST) {
+                if (impactDist < ZERO_DIST || (e.isBoss && e.isStunned)) {
+                    // ZERO DISTANCE or STUNNED BONUS
                     let damage = 5;
+                    if (b.piercing) damage = 10; 
                     if (!e.isBoss) damage = 100;
                     
+                    // Critical Damage on Stunned Boss
+                    if (e.isBoss && e.isStunned) damage *= 2;
+
                     e.hp -= damage;
                     
                     if (e.isBoss) {
@@ -1323,21 +1532,27 @@ function update() {
                     }
 
                     if (e.hp <= 0) {
-                        freezeTimer = e.isBoss ? 20 : 8; // ヒットストップ微増
-                        shakeIntensity = e.isBoss ? 30 : 15;
+                        freezeTimer = e.isBoss ? 30 : 8; 
+                        shakeIntensity = e.isBoss ? 40 : 15;
                         AudioSys.playExplosion();
                         score += e.isBoss ? 5000 : 1000;
                         popups.push(new FloatingText(e.x, e.y, e.isBoss ? "BOSS DESTROYED!" : "ZERO!", "#00ffff", e.isBoss ? 25 : 20));
                         
-                        if (!e.isBoss && Math.random() < 0.25) { 
-                            const rand = Math.random();
-                            let type = 'p';
-                            if (rand < 0.25) type = 'p';
-                            else if (rand < 0.5) type = 's';
-                            else if (rand < 0.75) type = 'r';
-                            else type = 'b';
-                            
-                            items.push(new Item(e.x, e.y, type));
+                        if (!e.isBoss) {
+                            // Drop logic (omitted for brevity, same as before)
+                             if (Math.random() < 0.20) { 
+                                const rand = Math.random();
+                                let type = 'p';
+                                if (rand < 0.15) type = 'p';
+                                else if (rand < 0.30) type = 'w';
+                                else if (rand < 0.45) type = 'r';
+                                else if (rand < 0.60) type = 's';
+                                else if (rand < 0.70) type = 'b';
+                                else if (rand < 0.85) type = 'h'; 
+                                else type = 'l'; 
+                                
+                                items.push(new Item(e.x, e.y, type));
+                            }
                         }
 
                         for(let i=0; i< (e.isBoss ? 50 : 15); i++) particles.push(new Particle(e.x, e.y, '#ff0044', 8, 30));
@@ -1347,13 +1562,31 @@ function update() {
                             bossHud.style.display = 'none';
                         }
                     } else {
-                        popups.push(new FloatingText(e.x, e.y, "CRITICAL!", "#ff0", 10));
+                        // Alive
+                        if (e.isBoss && e.isStunned) {
+                             popups.push(new FloatingText(e.x, e.y, "SMASH!!", "#fff", 12));
+                        } else {
+                             popups.push(new FloatingText(e.x, e.y, "CRITICAL!", "#ff0", 10));
+                        }
                         for(let i=0; i<3; i++) particles.push(new Particle(e.x, e.y, '#fff', 5, 10));
                     }
 
                 } else if (impactDist < MID_DIST) {
                     if (e.isBoss) {
-                        e.hp -= 0.2; 
+                        // STUN BUILD UP
+                        if (!e.isStunned) {
+                            e.stun += 2; // Increase stun
+                            if (e.stun >= e.maxStun) {
+                                e.stun = e.maxStun;
+                                e.isStunned = true;
+                                e.stunTimer = 180; // 3 seconds stun
+                                AudioSys.playBreak();
+                                popups.push(new FloatingText(e.x, e.y - 40, "ARMOR BREAK!!", "#0ff", 20));
+                                shakeIntensity = 10;
+                            }
+                        }
+                        // Chip damage
+                        e.hp -= 0.5; 
                         AudioSys.playRicochet(); 
                     } else {
                         e.hp -= 1;
@@ -1361,8 +1594,10 @@ function update() {
                     }
                     
                     const angle = Math.atan2(e.y - player.y, e.x - player.x);
-                    e.vx = Math.cos(angle) * (e.isBoss ? 2 : 8); 
-                    e.vy = Math.sin(angle) * (e.isBoss ? 2 : 8);
+                    if (!e.isBoss || e.isStunned) {
+                         e.vx = Math.cos(angle) * (e.isBoss ? 0 : 8); 
+                         e.vy = Math.sin(angle) * (e.isBoss ? 0 : 8);
+                    }
 
                     if (e.hp <= 0 && !e.isBoss) {
                         score += 100;
@@ -1370,9 +1605,11 @@ function update() {
                         for(let i=0; i<8; i++) particles.push(new Particle(e.x, e.y, '#ff0044', 4, 20));
                     }
                 } else {
-                    for(let i=0; i<2; i++) particles.push(new Particle(b.x, b.y, '#888', 2, 5));
-                    AudioSys.playRicochet();
-                    popups.push(new FloatingText(e.x, e.y - 20, "TOO FAR", "#555", 8));
+                    if (!b.piercing) {
+                        for(let i=0; i<2; i++) particles.push(new Particle(b.x, b.y, '#888', 2, 5));
+                        AudioSys.playRicochet();
+                        popups.push(new FloatingText(e.x, e.y - 20, "TOO FAR", "#555", 8));
+                    }
                 }
             }
         });
@@ -1381,14 +1618,14 @@ function update() {
     enemyBullets.forEach(b => {
         const dist = Math.hypot(player.x - b.x, player.y - b.y);
         if (!player.dead && dist < player.size/2 + b.size/2) {
-             if (player.shield) {
-                player.shield = false; 
-                popups.push(new FloatingText(player.x, player.y, "BLOCK!", "#0ff", 15));
+             if (player.shield > 0) {
+                player.shield--; 
+                popups.push(new FloatingText(player.x, player.y, "SHIELD LOST!", "#0ff", 10));
                 AudioSys.playRicochet();
                 b.dead = true;
-                shakeIntensity = 5;
+                shakeIntensity = 10;
             } else {
-                triggerGameOver(); // 死亡処理へ
+                triggerGameOver(); 
             }
         }
     });
@@ -1403,6 +1640,11 @@ function update() {
         const boss = enemies.find(e => e.isBoss);
         if (boss) {
             hpBarFill.style.width = `${(boss.hp / boss.maxHp) * 100}%`;
+            // Stun Bar UI
+            let stunPct = (boss.stun / boss.maxStun) * 100;
+            if (boss.isStunned) stunPct = (boss.stunTimer / 180) * 100;
+            stunBarFill.style.width = `${stunPct}%`;
+            stunBarFill.style.background = boss.isStunned ? '#0ff' : '#ff0';
         }
     }
 
@@ -1442,7 +1684,8 @@ function draw() {
     player.draw(ctx);
     popups.forEach(p => p.draw(ctx));
 
-    if (Input.touch.active) {
+    // Touch Feedback
+    if (Input.touch.moveId !== null) {
         ctx.beginPath();
         ctx.arc(Input.touch.start.x, Input.touch.start.y, 40, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
@@ -1500,7 +1743,9 @@ function gameOver() {
     overlayScreen.classList.remove('hidden');
     bossHud.style.display = 'none';
     warningOverlay.style.display = 'none';
-    mobileShotBtn.style.display = 'none';
+    // mobileShotBtn.style.display = 'none'; // Removed
+    shakeIntensity = 20;
+    AudioSys.playExplosion();
 }
 
 function loop() {
