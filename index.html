@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zero Distance v2</title>
+    <!-- レトロゲーム風フォントの読み込み -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            overflow: hidden;
+            font-family: 'Press Start 2P', cursive; /* レトロフォント */
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            color: #fff;
+        }
+        
+        /* ゲーム画面コンテナ（CRTエフェクト用） */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #111;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- CRTモニタ風エフェクト (UI/Graphics強化) --- */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%);
+            pointer-events: none;
+            z-index: 11;
+        }
+
+        /* --- UIレイヤー --- */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* ヘッダーUI（スコア等） */
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        
+        .score-box {
+            text-align: left;
+        }
+        .score-label {
+            font-size: 10px;
+            color: #aaa;
+            margin-bottom: 5px;
+            display: block;
+        }
+        #score-display {
+            font-size: 20px;
+            color: #fff;
+        }
+
+        .risk-gauge {
+            text-align: right;
+            opacity: 0.7;
+        }
+        .risk-label { font-size: 10px; color: #f00; display: block; margin-bottom: 5px;}
+        .risk-val { font-size: 20px; color: #f00; }
+
+        /* メインメニュー / ゲームオーバー画面 */
+        #overlay-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: auto;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 40px;
+            border: 4px solid #fff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            min-width: 300px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin: 0 0 20px 0;
+            color: #fff;
+            text-shadow: 4px 4px 0 #333;
+            line-height: 1.2;
+        }
+        
+        .subtitle {
+            font-size: 12px;
+            color: #f0f;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .instruction {
+            font-size: 10px;
+            color: #aaa;
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
+        .blink {
+            animation: blinker 1s steps(2, start) infinite;
+            color: #ffff00;
+            font-size: 14px;
+            margin-top: 30px;
+        }
+        @keyframes blinker { 50% { opacity: 0; } }
+        
+        /* モバイル操作ガイド */
+        .controls-guide {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px;
+            box-sizing: border-box;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 隠しクラス */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- CRTエフェクト -->
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <div id="ui-layer">
+        <!-- HUD -->
+        <div class="hud-header">
+            <div class="score-box">
+                <span class="score-label">SCORE</span>
+                <span id="score-display">000000</span>
+            </div>
+            <div class="risk-gauge">
+                <span class="risk-label">DANGER</span>
+                <span class="risk-val">HIGH</span>
+            </div>
+        </div>
+
+        <!-- Start / Game Over Screen -->
+        <div id="overlay-screen">
+            <h1>ZERO<br>DISTANCE</h1>
+            <div class="subtitle">Risk It All</div>
+            
+            <div id="screen-content">
+                <p class="instruction" style="color:#f88;">KILL AT ZERO RANGE.</p>
+                <p class="instruction">FAR SHOTS ARE USELESS.</p>
+                <div class="blink">[ CLICK TO START ]</div>
+            </div>
+            
+            <div class="instruction" style="margin-top: 30px; font-size: 8px; color: #666;">
+                PC: WASD + MOUSE<br>MOBILE: TOUCH DRAG + TAP
+            </div>
+        </div>
+
+        <!-- Mobile Controls Hint -->
+        <div class="controls-guide" id="mobile-guide" style="display:none;">
+            <div>MOVE</div>
+            <div>SHOOT</div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * ------------------------------------------------------------------
+ * SPRITE SYSTEM (Pixel Art)
+ * ドット絵をコード（0/1配列）で定義して描画するシステム
+ * 桜井氏の哲学に倣い、正中線を取れる奇数幅を採用
+ * ------------------------------------------------------------------
+ */
+const Sprites = {
+    // 11x11 Player Ship (奇数幅で中心を取りやすく)
+    player: [
+        [0,0,0,0,0,1,0,0,0,0,0],
+        [0,0,0,0,1,1,1,0,0,0,0],
+        [0,0,0,0,1,1,1,0,0,0,0],
+        [0,0,0,1,1,0,1,1,0,0,0],
+        [0,0,0,1,1,0,1,1,0,0,0],
+        [0,0,1,1,1,1,1,1,1,0,0],
+        [0,0,1,1,0,1,0,1,1,0,0],
+        [0,1,1,1,0,1,0,1,1,1,0],
+        [0,1,1,0,0,1,0,0,1,1,0],
+        [1,1,0,0,0,0,0,0,0,1,1],
+        [1,0,0,0,0,0,0,0,0,0,1]
+    ],
+    // 11x11 Enemy (Skull/Alien type)
+    enemy: [
+        [0,0,0,1,1,1,1,1,0,0,0],
+        [0,0,1,1,1,1,1,1,1,0,0],
+        [0,1,1,1,1,1,1,1,1,1,0],
+        [1,1,0,1,1,1,1,1,0,1,1],
+        [1,1,0,1,1,1,1,1,0,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1],
+        [0,1,1,0,1,1,1,0,1,1,0],
+        [0,1,1,1,0,0,0,1,1,1,0],
+        [0,0,1,1,1,0,1,1,1,0,0],
+        [0,0,1,0,1,0,1,0,1,0,0],
+        [0,0,1,0,0,0,0,0,1,0,0]
+    ]
+};
+
+/**
+ * ピクセルパターンを描画する関数
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {Array} pattern 0/1の2次元配列
+ * @param {Number} pixelSize 1ドットの描画サイズ
+ * @param {String} color 塗りつぶし色
+ */
+function drawPixelArt(ctx, pattern, pixelSize, color) {
+    const rows = pattern.length;
+    const cols = pattern[0].length;
+    // 中心を原点(0,0)にするためのオフセット
+    const offsetX = -(cols * pixelSize) / 2;
+    const offsetY = -(rows * pixelSize) / 2;
+
+    ctx.fillStyle = color;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (pattern[r][c] === 1) {
+                ctx.fillRect(
+                    offsetX + c * pixelSize, 
+                    offsetY + r * pixelSize, 
+                    pixelSize, 
+                    pixelSize
+                );
+            }
+        }
+    }
+}
+
+/**
+ * ------------------------------------------------------------------
+ * AUDIO SYSTEM (Web Audio API)
+ * ------------------------------------------------------------------
+ */
+const AudioSys = {
+    ctx: null,
+    init: function() {
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioContext();
+    },
+    resume: function() {
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+    playTone: function(freq, type, duration, vol = 0.1) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    },
+    playShoot: function() {
+        this.playTone(800, 'square', 0.08, 0.05);
+        this.playTone(300, 'sawtooth', 0.08, 0.05);
+    },
+    playRicochet: function() {
+        this.playTone(1200, 'triangle', 0.1, 0.05);
+    },
+    playHit: function() {
+        this.playTone(150, 'square', 0.1, 0.1);
+    },
+    playExplosion: function() {
+        if (!this.ctx) return;
+        const bufferSize = this.ctx.sampleRate * 0.4;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 800;
+
+        gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start();
+        this.playTone(50, 'sawtooth', 0.3, 0.3);
+    }
+};
+
+/**
+ * ------------------------------------------------------------------
+ * GAME ENGINE
+ * ------------------------------------------------------------------
+ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score-display');
+const overlayScreen = document.getElementById('overlay-screen');
+const screenContent = document.getElementById('screen-content');
+const mobileGuide = document.getElementById('mobile-guide');
+
+let width, height;
+const isMobile = 'ontouchstart' in window;
+
+if (isMobile) {
+    mobileGuide.style.display = 'flex';
+}
+
+function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    // ドット感を出すためにアンチエイリアスを切る
+    ctx.imageSmoothingEnabled = false;
+}
+window.addEventListener('resize', resize);
+resize();
+
+const STATE = { TITLE: 0, PLAYING: 1, GAMEOVER: 2 };
+let currentState = STATE.TITLE;
+let score = 0;
+let frameCount = 0;
+let shakeIntensity = 0;
+let freezeTimer = 0;
+
+const Input = {
+    keys: {},
+    mouse: { x: 0, y: 0, down: false },
+    touch: {
+        leftId: null, rightId: null,
+        leftStart: {x:0, y:0}, leftCurr: {x:0, y:0},
+        rightCurr: {x:0, y:0}, rightDown: false
+    }
+};
+
+// Input Listeners
+window.addEventListener('keydown', e => Input.keys[e.key] = true);
+window.addEventListener('keyup', e => Input.keys[e.key] = false);
+window.addEventListener('mousemove', e => { Input.mouse.x = e.clientX; Input.mouse.y = e.clientY; });
+window.addEventListener('mousedown', () => Input.mouse.down = true);
+window.addEventListener('mouseup', () => Input.mouse.down = false);
+
+window.addEventListener('touchstart', e => {
+    // UIタップの処理は除外しないとスタートできないため注意
+    if (e.target.closest('#overlay-screen')) return; 
+
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.clientX < width / 2) {
+            if (Input.touch.leftId === null) {
+                Input.touch.leftId = t.identifier;
+                Input.touch.leftStart = { x: t.clientX, y: t.clientY };
+                Input.touch.leftCurr = { x: t.clientX, y: t.clientY };
+            }
+        } else {
+            if (Input.touch.rightId === null) {
+                Input.touch.rightId = t.identifier;
+                Input.touch.rightDown = true;
+                Input.touch.rightCurr = { x: t.clientX, y: t.clientY };
+            }
+        }
+    }
+}, { passive: false });
+
+window.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === Input.touch.leftId) Input.touch.leftCurr = { x: t.clientX, y: t.clientY };
+        if (t.identifier === Input.touch.rightId) Input.touch.rightCurr = { x: t.clientX, y: t.clientY };
+    }
+}, { passive: false });
+
+window.addEventListener('touchend', e => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === Input.touch.leftId) {
+            Input.touch.leftId = null;
+            Input.touch.leftStart = { x:0, y:0 };
+            Input.touch.leftCurr = { x:0, y:0 };
+        }
+        if (t.identifier === Input.touch.rightId) {
+            Input.touch.rightId = null;
+            Input.touch.rightDown = false;
+        }
+    }
+}, { passive: false });
+
+// Overlay Click/Tap
+overlayScreen.addEventListener('click', () => {
+    if (currentState !== STATE.PLAYING) startGame();
+});
+
+function startGame() {
+    AudioSys.init();
+    AudioSys.resume();
+    
+    player = new Player();
+    enemies = [];
+    bullets = [];
+    particles = [];
+    popups = [];
+    score = 0;
+    shakeIntensity = 0;
+    freezeTimer = 0;
+    frameCount = 0;
+    
+    updateScoreDisplay();
+    overlayScreen.classList.add('hidden');
+    currentState = STATE.PLAYING;
+    loop();
+}
+
+function updateScoreDisplay() {
+    // ゼロ埋め6桁
+    scoreEl.innerText = score.toString().padStart(6, '0');
+}
+
+/**
+ * ------------------------------------------------------------------
+ * ENTITIES
+ * ------------------------------------------------------------------
+ */
+class Player {
+    constructor() {
+        this.x = width / 2;
+        this.y = height / 2;
+        this.pixelSize = 3; // ドットの大きさ
+        this.size = 11 * this.pixelSize; // 当たり判定用のおおよそのサイズ
+        this.speed = 4;
+        this.angle = 0; // 向き（ドット絵回転用）
+        this.color = '#00ffff'; // サイバーブルー
+        this.shootCooldown = 0;
+    }
+
+    update() {
+        let dx = 0;
+        let dy = 0;
+
+        if (Input.keys['w'] || Input.keys['ArrowUp']) dy -= 1;
+        if (Input.keys['s'] || Input.keys['ArrowDown']) dy += 1;
+        if (Input.keys['a'] || Input.keys['ArrowLeft']) dx -= 1;
+        if (Input.keys['d'] || Input.keys['ArrowRight']) dx += 1;
+
+        if (Input.touch.leftId !== null) {
+            const tx = Input.touch.leftCurr.x - Input.touch.leftStart.x;
+            const ty = Input.touch.leftCurr.y - Input.touch.leftStart.y;
+            const dist = Math.hypot(tx, ty);
+            if (dist > 5) {
+                dx = tx / dist;
+                dy = ty / dist;
+            }
+        }
+
+        if (dx !== 0 || dy !== 0) {
+            const length = Math.hypot(dx, dy);
+            dx /= length;
+            dy /= length;
+            // 移動方向に機体を向ける（オプション）
+            // this.angle = Math.atan2(dy, dx); 
+        }
+
+        this.x += dx * this.speed;
+        this.y += dy * this.speed;
+        this.x = Math.max(this.size, Math.min(width - this.size, this.x));
+        this.y = Math.max(this.size, Math.min(height - this.size, this.y));
+
+        if (this.shootCooldown > 0) this.shootCooldown--;
+        
+        let shootTarget = null;
+        if (Input.mouse.down) {
+            shootTarget = { x: Input.mouse.x, y: Input.mouse.y };
+        } else if (Input.touch.rightDown) {
+            shootTarget = { x: Input.touch.rightCurr.x, y: Input.touch.rightCurr.y };
+        }
+
+        if (shootTarget) {
+            // マウス/タッチの方向に機体を向ける
+            this.angle = Math.atan2(shootTarget.y - this.y, shootTarget.x - this.x);
+            
+            if (this.shootCooldown <= 0) {
+                this.shoot();
+                this.shootCooldown = 8;
+            }
+        }
+    }
+
+    shoot() {
+        const spread = (Math.random() - 0.5) * 0.1;
+        bullets.push(new Bullet(this.x, this.y, this.angle + spread));
+        AudioSys.playShoot();
+        // Recoil
+        this.x -= Math.cos(this.angle) * 2;
+        this.y -= Math.sin(this.angle) * 2;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle + Math.PI/2); // スプライトが上向きなので補正
+        
+        // ドット絵描画
+        drawPixelArt(ctx, Sprites.player, this.pixelSize, this.color);
+        
+        ctx.restore();
+        
+        // Zero Distance Circle (Visual Aid)
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 90, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+}
+
+class Enemy {
+    constructor() {
+        const edge = Math.floor(Math.random() * 4);
+        if (edge === 0) { this.x = Math.random() * width; this.y = -50; }
+        else if (edge === 1) { this.x = width + 50; this.y = Math.random() * height; }
+        else if (edge === 2) { this.x = Math.random() * width; this.y = height + 50; }
+        else { this.x = -50; this.y = Math.random() * height; }
+
+        this.pixelSize = 3 + Math.random();
+        this.size = 13 * this.pixelSize;
+        this.speed = 1.0 + Math.random() * 2.0;
+        this.angle = 0;
+        this.hp = 3;
+        this.color = '#ff0044'; // 敵っぽい赤ピンク
+        this.vx = 0; 
+        this.vy = 0;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= 0.9;
+        this.vy *= 0.9;
+
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        this.angle = Math.atan2(dy, dx);
+        
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        // 敵は常にプレイヤーの方を向く（スプライトは上向き前提）
+        ctx.rotate(this.angle + Math.PI/2);
+        
+        // HPが減ると白っぽく点滅する演出
+        const drawColor = (this.hp < 3 && frameCount % 4 < 2) ? '#ffffff' : this.color;
+        drawPixelArt(ctx, Sprites.enemy, this.pixelSize, drawColor);
+        
+        ctx.restore();
+    }
+}
+
+class Bullet {
+    constructor(x, y, angle) {
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+        this.speed = 14;
+        this.life = 60;
+        this.dead = false;
+    }
+    update() {
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+        this.life--;
+        if (this.life <= 0) this.dead = true;
+    }
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.fillStyle = '#ffff00';
+        ctx.fillRect(-8, -1.5, 16, 3); // 少し太く
+        ctx.restore();
+    }
+}
+
+class Particle {
+    constructor(x, y, color, speed, life) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        const angle = Math.random() * Math.PI * 2;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.life = life;
+        this.maxLife = life;
+        this.size = Math.random() * 6 + 2;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life--;
+        this.vx *= 0.92;
+        this.vy *= 0.92;
+        this.size *= 0.95;
+    }
+    draw(ctx) {
+        ctx.fillStyle = this.color;
+        // パーティクルも四角形（ピクセル風）
+        ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+    }
+}
+
+class FloatingText {
+    constructor(x, y, text, color, size) {
+        this.x = x;
+        this.y = y;
+        this.text = text;
+        this.color = color;
+        this.life = 50;
+        this.size = size;
+        this.vy = -0.5;
+    }
+    update() {
+        this.y += this.vy;
+        this.life--;
+    }
+    draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, this.life / 10);
+        ctx.fillStyle = this.color;
+        // フォント指定（Google Fonts）
+        ctx.font = `${this.size}px "Press Start 2P"`; 
+        ctx.textAlign = 'center';
+        // 縁取りで視認性向上
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.strokeText(this.text, this.x, this.y);
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.restore();
+    }
+}
+
+let player;
+let enemies = [];
+let bullets = [];
+let particles = [];
+let popups = [];
+
+function update() {
+    if (freezeTimer > 0) {
+        freezeTimer--;
+        return;
+    }
+
+    if (frameCount % Math.max(20, 60 - Math.floor(frameCount / 500)) === 0) {
+        enemies.push(new Enemy());
+    }
+
+    player.update();
+
+    bullets.forEach(b => b.update());
+    bullets = bullets.filter(b => !b.dead);
+
+    enemies.forEach((e) => {
+        e.update();
+        
+        // Player Collision
+        const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
+        if (distToPlayer < (player.size/3 + e.size/3)) { // 判定は少し甘めに（ドット絵なので）
+            gameOver();
+        }
+
+        bullets.forEach(b => {
+            if (b.dead) return;
+            const distToBullet = Math.hypot(e.x - b.x, e.y - b.y);
+            
+            if (distToBullet < e.size/2 + 5) {
+                b.dead = true;
+                const impactDist = Math.hypot(player.x - e.x, player.y - e.y);
+                
+                const ZERO_DIST = 90;
+                const MID_DIST = 250;
+
+                if (impactDist < ZERO_DIST) {
+                    // ZERO DISTANCE KILL
+                    e.hp = 0;
+                    freezeTimer = 5;
+                    shakeIntensity = 15;
+                    
+                    for(let i=0; i<15; i++) particles.push(new Particle(e.x, e.y, '#ff0044', 8, 30));
+                    for(let i=0; i<8; i++) particles.push(new Particle(e.x, e.y, '#fff', 5, 20));
+
+                    AudioSys.playExplosion();
+                    score += 1000;
+                    popups.push(new FloatingText(e.x, e.y, "ZERO!", "#00ffff", 20));
+
+                } else if (impactDist < MID_DIST) {
+                    // MID RANGE
+                    e.hp -= 1;
+                    const angle = Math.atan2(e.y - player.y, e.x - player.x);
+                    e.vx = Math.cos(angle) * 8;
+                    e.vy = Math.sin(angle) * 8;
+
+                    shakeIntensity = 2;
+                    AudioSys.playHit();
+                    for(let i=0; i<3; i++) particles.push(new Particle(b.x, b.y, '#ffaa00', 3, 10));
+
+                    if (e.hp <= 0) {
+                        score += 100;
+                        popups.push(new FloatingText(e.x, e.y, "HIT", "#fff", 10));
+                        for(let i=0; i<8; i++) particles.push(new Particle(e.x, e.y, '#ff0044', 4, 20));
+                    }
+                } else {
+                    // FAR RANGE
+                    for(let i=0; i<2; i++) particles.push(new Particle(b.x, b.y, '#888', 2, 5));
+                    AudioSys.playRicochet();
+                    popups.push(new FloatingText(e.x, e.y - 20, "TOO FAR", "#555", 8));
+                }
+            }
+        });
+    });
+
+    enemies = enemies.filter(e => e.hp > 0);
+    particles.forEach(p => p.update());
+    particles = particles.filter(p => p.life > 0);
+    popups.forEach(p => p.update());
+    popups = popups.filter(p => p.life > 0);
+
+    if (shakeIntensity > 0) shakeIntensity *= 0.9;
+    if (shakeIntensity < 0.5) shakeIntensity = 0;
+
+    updateScoreDisplay();
+    frameCount++;
+}
+
+function draw() {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, width, height);
+
+    // グリッド背景（薄く）
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = 0; x < width; x += 50) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
+    for (let y = 0; y < height; y += 50) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
+    ctx.stroke();
+
+    ctx.save();
+    if (shakeIntensity > 0) {
+        const dx = (Math.random() - 0.5) * shakeIntensity;
+        const dy = (Math.random() - 0.5) * shakeIntensity;
+        ctx.translate(dx, dy);
+    }
+
+    bullets.forEach(b => b.draw(ctx));
+    particles.forEach(p => p.draw(ctx));
+    enemies.forEach(e => e.draw(ctx));
+    player.draw(ctx);
+    popups.forEach(p => p.draw(ctx));
+
+    // Touch Controls Visualizer
+    if (Input.touch.leftId !== null) {
+        ctx.beginPath();
+        ctx.arc(Input.touch.leftStart.x, Input.touch.leftStart.y, 40, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(Input.touch.leftCurr.x, Input.touch.leftCurr.y, 15, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function gameOver() {
+    currentState = STATE.GAMEOVER;
+    
+    screenContent.innerHTML = `
+        <p style="color:red; font-size: 24px;">GAME OVER</p>
+        <p style="margin-top:20px;">SCORE: ${score}</p>
+        <div class="blink" style="margin-top:30px;">[ TRY AGAIN ]</div>
+    `;
+    overlayScreen.classList.remove('hidden');
+    
+    shakeIntensity = 20;
+    AudioSys.playExplosion();
+}
+
+function loop() {
+    if (currentState === STATE.PLAYING) {
+        requestAnimationFrame(loop);
+        update();
+        draw();
+    }
+}
+</script>
+</body>
+</html>
