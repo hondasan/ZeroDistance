@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zero Distance v14 (Break System)</title>
+    <title>Zero Distance v15 (Titan Update)</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -108,7 +108,7 @@
             box-shadow: none;
         }
 
-        /* Boss HUD (Enhanced) */
+        /* Boss HUD */
         #boss-hud {
             position: absolute;
             bottom: 40px;
@@ -272,7 +272,7 @@ const Sprites = {
         [1,1,0,0,0,0,0,0,0,1,1],
         [1,0,0,0,0,0,0,0,0,0,1]
     ],
-    // Enemy Sprites...
+    // Enemy Sprites
     enemy: [
         [0,0,0,1,1,1,1,1,0,0,0],
         [0,0,1,1,1,1,1,1,1,0,0],
@@ -351,6 +351,29 @@ const Sprites = {
         [0,1,1,0,0,1,0,0,1,1,0],
         [0,0,1,1,1,1,1,1,1,0,0]
     ],
+    // New Enemies
+    enemy_orbiter: [
+        [0,0,0,1,1,1,0,0,0],
+        [0,0,1,1,0,1,1,0,0],
+        [0,1,1,0,0,0,1,1,0],
+        [1,1,0,0,1,0,0,1,1],
+        [1,0,0,1,1,1,0,0,1],
+        [1,1,0,0,1,0,0,1,1],
+        [0,1,1,0,0,0,1,1,0],
+        [0,0,1,1,0,1,1,0,0],
+        [0,0,0,1,1,1,0,0,0]
+    ],
+    enemy_mine: [
+        [0,0,1,0,0,0,1,0,0],
+        [0,0,0,1,0,1,0,0,0],
+        [1,0,1,1,1,1,1,0,1],
+        [0,1,1,1,1,1,1,1,0],
+        [0,0,1,1,1,1,1,0,0],
+        [0,1,1,1,1,1,1,1,0],
+        [1,0,1,1,1,1,1,0,1],
+        [0,0,0,1,0,1,0,0,0],
+        [0,0,1,0,0,0,1,0,0]
+    ],
     boss_core: [
         [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
         [0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
@@ -400,7 +423,35 @@ const Sprites = {
         [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0]
     ],
-    // 7x7 Items
+    // New Boss: Titan (Big square)
+    boss_titan: [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+        [1,0,1,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1],
+        [1,0,1,0,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,0,1,0,1],
+        [1,0,1,0,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,0,1,0,1],
+        [1,0,1,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1],
+        [1,0,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
+        [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+        [1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1],
+        [1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1],
+        [1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1],
+        [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1],
+        [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+        [1,0,1,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1],
+        [1,0,1,0,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,0,1,0,1],
+        [1,0,1,0,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,0,1,0,1],
+        [1,0,1,0,0,0,0,0,0,1,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1],
+        [1,0,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ],
+    // 7x7 Items (Same as before)
     item_p: [
         [0,1,1,1,1,1,0],
         [1,1,0,0,0,1,1],
@@ -524,7 +575,6 @@ const AudioSys = {
         this.playTone(150, 'square', 0.1, 0.1);
     },
     playBreak: function() {
-        // ガラスが割れるような高音
         this.playTone(1500, 'sawtooth', 0.3, 0.2);
         setTimeout(() => this.playTone(1000, 'square', 0.4, 0.2), 50);
         setTimeout(() => this.playTone(500, 'sawtooth', 0.5, 0.3), 100);
@@ -580,7 +630,7 @@ const bossWarningName = document.getElementById('boss-warning-name');
 const bossHud = document.getElementById('boss-hud');
 const bossHudName = document.getElementById('boss-hud-name');
 const hpBarFill = document.getElementById('hp-bar-fill');
-const stunBarFill = document.getElementById('stun-bar-fill'); // New Stun Bar
+const stunBarFill = document.getElementById('stun-bar-fill'); 
 const mobileGuide = document.getElementById('mobile-guide');
 
 let width, height;
@@ -754,8 +804,16 @@ function spawnBoss() {
     currentState = STATE.BOSS_WARNING;
     warningOverlay.style.display = 'block';
     
-    const type = Math.random() > 0.5 ? 0 : 1; 
-    const name = type === 0 ? "THE CORE" : "THE CHASER";
+    const r = Math.random();
+    let type = 0; // Core
+    if (r < 0.33) type = 0;
+    else if (r < 0.66) type = 1; // Chaser
+    else type = 2; // Titan (New)
+
+    let name = "THE CORE";
+    if (type === 1) name = "THE CHASER";
+    if (type === 2) name = "THE TITAN";
+
     bossWarningName.innerText = `WARNING: ${name}`;
     bossHudName.innerText = name;
 
@@ -936,7 +994,7 @@ class Player {
 
 class Enemy {
     constructor(type = 0) {
-        this.type = type; 
+        this.type = type; // 0:Normal, 1:Speed, 2:Tank, 3:Shooter, 4:Sniper, 5:Splitter, 6:Orbiter, 7:Mine
         const edge = Math.floor(Math.random() * 4);
         if (edge === 0) { this.x = Math.random() * width; this.y = -50; }
         else if (edge === 1) { this.x = width + 50; this.y = Math.random() * height; }
@@ -955,33 +1013,47 @@ class Enemy {
         this.shootTimer = 0;
         this.isZeroDist = false;
 
-        if (this.type === 1) { 
+        // Apply Type Config
+        if (this.type === 1) { // Speedster
             this.speed = 4.0 + Math.random();
             this.hp = 2;
             this.color = '#0088ff';
             this.sprite = Sprites.enemy_speed;
-        } else if (this.type === 2) { 
+        } else if (this.type === 2) { // Tank
             this.speed = 0.8;
             this.hp = 8;
             this.color = '#00ff00';
             this.size = 15 * this.pixelSize;
             this.sprite = Sprites.enemy_tank;
-        } else if (this.type === 3) { 
+        } else if (this.type === 3) { // Shooter
             this.speed = 1.2;
             this.hp = 3;
             this.color = '#ffff00';
             this.sprite = Sprites.enemy_shooter;
-        } else if (this.type === 4) { 
+        } else if (this.type === 4) { // Sniper
             this.speed = 1.5;
             this.hp = 4;
             this.color = '#aa00ff';
             this.sprite = Sprites.enemy_sniper;
-        } else if (this.type === 5) { 
+        } else if (this.type === 5) { // Splitter
             this.speed = 1.0;
             this.hp = 5;
             this.color = '#ff8800';
             this.sprite = Sprites.enemy_splitter;
-        } else { 
+        } else if (this.type === 6) { // Orbiter
+            this.speed = 2.0;
+            this.hp = 3;
+            this.color = '#00ffff';
+            this.sprite = Sprites.enemy_orbiter;
+            this.orbitAngle = Math.random() * Math.PI * 2;
+        } else if (this.type === 7) { // Mine
+            this.speed = 0;
+            this.hp = 5;
+            this.color = '#888888';
+            this.sprite = Sprites.enemy_mine;
+            this.x = Math.random() * (width - 100) + 50; // Random spawn inside
+            this.y = Math.random() * (height - 100) + 50;
+        } else { // Normal
             this.sprite = Sprites.enemy;
         }
     }
@@ -999,7 +1071,8 @@ class Enemy {
         let moveSpeed = this.speed;
         const dist = Math.hypot(dx, dy);
 
-        if (this.type === 3) { 
+        // Logic based on Type
+        if (this.type === 3) { // Shooter
             if (dist < 300) moveSpeed = -1;
             else if (dist < 400) moveSpeed = 0;
             
@@ -1008,7 +1081,7 @@ class Enemy {
                 enemyBullets.push(new EnemyBullet(this.x, this.y, this.angle));
                 this.shootTimer = 0;
             }
-        } else if (this.type === 4) { 
+        } else if (this.type === 4) { // Sniper
             if (dist < 500) moveSpeed = -1.5;
             else if (dist < 600) moveSpeed = 0;
             
@@ -1020,6 +1093,30 @@ class Enemy {
                 enemyBullets.push(b);
                 this.shootTimer = 0;
             }
+        } else if (this.type === 6) { // Orbiter
+            this.orbitAngle += 0.02;
+            const targetX = player.x + Math.cos(this.orbitAngle) * 150;
+            const targetY = player.y + Math.sin(this.orbitAngle) * 150;
+            const odx = targetX - this.x;
+            const ody = targetY - this.y;
+            const oAngle = Math.atan2(ody, odx);
+            this.x += Math.cos(oAngle) * this.speed;
+            this.y += Math.sin(oAngle) * this.speed;
+            
+            this.shootTimer++;
+            if (this.shootTimer > 150) {
+                enemyBullets.push(new EnemyBullet(this.x, this.y, this.angle));
+                this.shootTimer = 0;
+            }
+            return; // Skip normal movement
+        } else if (this.type === 7) { // Mine
+            // Do nothing, just sit there. Explode if close?
+            if (dist < 80) {
+                // Warning flash?
+                if (frameCount % 10 < 5) this.color = '#ff0000';
+                else this.color = '#888888';
+            }
+            return;
         }
 
         this.x += Math.cos(this.angle) * moveSpeed;
@@ -1055,7 +1152,7 @@ class Enemy {
 class Boss extends Enemy {
     constructor(type = 0) {
         super(0);
-        this.bossType = type; // 0:Core, 1:Chaser
+        this.bossType = type; // 0:Core, 1:Chaser, 2:Titan
         this.x = width / 2;
         this.y = -200; 
         this.pixelSize = 6; 
@@ -1076,12 +1173,18 @@ class Boss extends Enemy {
         this.isStunned = false;
         this.stunTimer = 0;
 
-        if (this.bossType === 1) { 
-            this.speed = 4.0; 
+        if (this.bossType === 1) { // CHASER
+            this.speed = 2.5; // Slightly slower than before
             this.color = '#ff3300';
             this.sprite = Sprites.boss_chaser;
             this.state = 'chase'; 
             this.stateTimer = 0;
+        } else if (this.bossType === 2) { // TITAN
+            this.speed = 0.5;
+            this.hp = 500;
+            this.maxHp = 500;
+            this.color = '#444444';
+            this.sprite = Sprites.boss_titan;
         } else { 
             this.sprite = Sprites.boss_core;
         }
@@ -1104,12 +1207,10 @@ class Boss extends Enemy {
                 this.stun = 0;
                 popups.push(new FloatingText(this.x, this.y - 60, "RECOVER!", "#fff", 15));
             }
-            // Stunned behavior: Shake slightly
             this.x += (Math.random()-0.5) * 2;
             this.y += (Math.random()-0.5) * 2;
-            return; // Skip normal behavior
+            return; 
         } else {
-            // Natural Stun decay
             if (this.stun > 0) this.stun -= 0.1;
         }
 
@@ -1149,12 +1250,12 @@ class Boss extends Enemy {
                 this.shootCore();
                 this.shootTimer = 0;
             }
-        } else { // CHASER
+        } else if (this.bossType === 1) { // CHASER
             this.stateTimer++;
             if (this.state === 'chase') {
                 this.x += Math.cos(this.angle) * this.speed;
                 this.y += Math.sin(this.angle) * this.speed;
-                if (this.stateTimer > 180) { 
+                if (this.stateTimer > 240) { // Longer chase but slower
                     this.state = 'tired';
                     this.stateTimer = 0;
                     this.color = '#555555'; 
@@ -1162,7 +1263,7 @@ class Boss extends Enemy {
             } else { 
                 this.x += Math.cos(this.angle) * 0.2;
                 this.y += Math.sin(this.angle) * 0.2;
-                if (this.stateTimer > 120) { 
+                if (this.stateTimer > 180) { // Longer rest
                     this.state = 'chase';
                     this.stateTimer = 0;
                     this.color = '#ff3300';
@@ -1173,13 +1274,43 @@ class Boss extends Enemy {
                     enemyBullets.push(new EnemyBullet(this.x, this.y, this.angle + i*0.2));
                 }
             }
+        } else if (this.bossType === 2) { // TITAN
+            // Moves very slowly towards center then stops mostly
+            const distToCenter = Math.hypot(width/2 - this.x, height/2 - this.y);
+            if (distToCenter > 50) {
+                const angleToCenter = Math.atan2(height/2 - this.y, width/2 - this.x);
+                this.x += Math.cos(angleToCenter) * this.speed;
+                this.y += Math.sin(angleToCenter) * this.speed;
+            }
+            
+            this.shootTimer++;
+            // Heavy fire
+            if (this.shootTimer > 90) {
+                // Ring of bullets
+                for(let i=0; i<8; i++) {
+                    let b = new EnemyBullet(this.x, this.y, (Math.PI*2/8)*i + frameCount*0.01);
+                    b.size = 10;
+                    b.speed = 3;
+                    enemyBullets.push(b);
+                }
+                // Spawn mine occasionally
+                if (Math.random() < 0.3) {
+                    let m = new Enemy(7);
+                    m.x = this.x + (Math.random()-0.5)*100;
+                    m.y = this.y + (Math.random()-0.5)*100;
+                    enemies.push(m);
+                }
+                this.shootTimer = 0;
+                AudioSys.playShoot();
+            }
         }
 
         this.x = Math.max(this.size, Math.min(width - this.size, this.x));
         this.y = Math.max(this.size, Math.min(height - this.size, this.y));
         
         const dist = Math.hypot(dx, dy);
-        this.isZeroDist = (dist < 90);
+        // More forgiving Zero Distance for Bosses
+        this.isZeroDist = (dist < 120); 
     }
 
     shootCore() {
@@ -1202,11 +1333,11 @@ class Boss extends Enemy {
         if (this.entering) {
             ctx.globalAlpha = 0.5; 
         } else if (this.isStunned) {
-            // Stun color (Blue flash)
             drawColor = frameCount % 4 < 2 ? '#00ffff' : '#0000ff';
         } else {
             if (this.hp < 100 && frameCount % 6 < 3) drawColor = '#ff0000';
-            if (this.isZeroDist && frameCount % 4 < 2) drawColor = '#ff00ff';
+            // Flash white on Zero Dist
+            if (this.isZeroDist && frameCount % 4 < 2) drawColor = '#ffffff'; 
             if (this.bossType === 1 && this.state === 'tired') {
                  if (frameCount % 20 < 10) drawColor = '#888888';
             }
@@ -1218,7 +1349,7 @@ class Boss extends Enemy {
 
         if (this.isZeroDist && !this.entering) {
             ctx.save();
-            ctx.translate(this.x, this.y - 60);
+            ctx.translate(this.x, this.y - 70);
             ctx.fillStyle = "#ff00ff";
             ctx.font = "12px 'Press Start 2P'";
             ctx.textAlign = "center";
@@ -1226,10 +1357,9 @@ class Boss extends Enemy {
             ctx.restore();
         }
         
-        // Show "CHANCE" or "BREAK"
         if (this.isStunned) {
             ctx.save();
-            ctx.translate(this.x, this.y + 60);
+            ctx.translate(this.x, this.y + 70);
             ctx.fillStyle = "#00ffff";
             ctx.font = "14px 'Press Start 2P'";
             ctx.textAlign = "center";
@@ -1237,7 +1367,7 @@ class Boss extends Enemy {
             ctx.restore();
         } else if (this.bossType === 1 && this.state === 'tired') {
             ctx.save();
-            ctx.translate(this.x, this.y + 60);
+            ctx.translate(this.x, this.y + 70);
             ctx.fillStyle = "#00ff00";
             ctx.font = "10px 'Press Start 2P'";
             ctx.textAlign = "center";
@@ -1416,12 +1546,14 @@ function update() {
         if (frameCount % Math.max(20, 60 - Math.floor(frameCount / 500)) === 0) {
             let type = 0;
             const r = Math.random();
-            if (r < 0.4) type = 0; 
-            else if (r < 0.6) type = 1; 
-            else if (r < 0.75) type = 2; 
-            else if (r < 0.85) type = 3; 
-            else if (r < 0.95) type = 4; 
-            else type = 5; 
+            if (r < 0.3) type = 0; 
+            else if (r < 0.5) type = 1; 
+            else if (r < 0.6) type = 2; 
+            else if (r < 0.7) type = 3; 
+            else if (r < 0.8) type = 4; 
+            else if (r < 0.9) type = 5; 
+            else if (r < 0.95) type = 6; // Orbiter
+            else type = 7; // Mine
             
             enemies.push(new Enemy(type));
         }
@@ -1512,8 +1644,8 @@ function update() {
                 if (!b.piercing) b.dead = true; 
                 
                 const impactDist = Math.hypot(player.x - e.x, player.y - e.y);
-                const ZERO_DIST = 90;
-                const MID_DIST = 350; // Increased range for Stun build-up
+                const ZERO_DIST = e.isBoss ? 120 : 90; // Increased range for boss
+                const MID_DIST = 350; 
                 
                 if (impactDist < ZERO_DIST || (e.isBoss && e.isStunned)) {
                     // ZERO DISTANCE or STUNNED BONUS
@@ -1521,14 +1653,15 @@ function update() {
                     if (b.piercing) damage = 10; 
                     if (!e.isBoss) damage = 100;
                     
-                    // Critical Damage on Stunned Boss
                     if (e.isBoss && e.isStunned) damage *= 2;
 
                     e.hp -= damage;
                     
                     if (e.isBoss) {
-                        shakeIntensity = 3; 
+                        shakeIntensity = 5; // Hit feedback shake
                         AudioSys.playHit();
+                        // Spawn flash particle
+                        particles.push(new Particle(e.x, e.y, '#ffffff', 2, 5));
                     }
 
                     if (e.hp <= 0) {
@@ -1539,7 +1672,6 @@ function update() {
                         popups.push(new FloatingText(e.x, e.y, e.isBoss ? "BOSS DESTROYED!" : "ZERO!", "#00ffff", e.isBoss ? 25 : 20));
                         
                         if (!e.isBoss) {
-                            // Drop logic (omitted for brevity, same as before)
                              if (Math.random() < 0.20) { 
                                 const rand = Math.random();
                                 let type = 'p';
@@ -1575,17 +1707,16 @@ function update() {
                     if (e.isBoss) {
                         // STUN BUILD UP
                         if (!e.isStunned) {
-                            e.stun += 2; // Increase stun
+                            e.stun += 2; 
                             if (e.stun >= e.maxStun) {
                                 e.stun = e.maxStun;
                                 e.isStunned = true;
-                                e.stunTimer = 180; // 3 seconds stun
+                                e.stunTimer = 180; 
                                 AudioSys.playBreak();
                                 popups.push(new FloatingText(e.x, e.y - 40, "ARMOR BREAK!!", "#0ff", 20));
                                 shakeIntensity = 10;
                             }
                         }
-                        // Chip damage
                         e.hp -= 0.5; 
                         AudioSys.playRicochet(); 
                     } else {
@@ -1640,7 +1771,6 @@ function update() {
         const boss = enemies.find(e => e.isBoss);
         if (boss) {
             hpBarFill.style.width = `${(boss.hp / boss.maxHp) * 100}%`;
-            // Stun Bar UI
             let stunPct = (boss.stun / boss.maxStun) * 100;
             if (boss.isStunned) stunPct = (boss.stunTimer / 180) * 100;
             stunBarFill.style.width = `${stunPct}%`;
@@ -1656,7 +1786,6 @@ function update() {
 }
 
 function draw() {
-    // 死亡時は背景を赤く
     if (player.dead) ctx.fillStyle = '#300';
     else ctx.fillStyle = '#111';
     
@@ -1684,7 +1813,6 @@ function draw() {
     player.draw(ctx);
     popups.forEach(p => p.draw(ctx));
 
-    // Touch Feedback
     if (Input.touch.moveId !== null) {
         ctx.beginPath();
         ctx.arc(Input.touch.start.x, Input.touch.start.y, 40, 0, Math.PI * 2);
@@ -1743,7 +1871,6 @@ function gameOver() {
     overlayScreen.classList.remove('hidden');
     bossHud.style.display = 'none';
     warningOverlay.style.display = 'none';
-    // mobileShotBtn.style.display = 'none'; // Removed
     shakeIntensity = 20;
     AudioSys.playExplosion();
 }
