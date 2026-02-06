@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zero Distance v15 (Titan Update)</title>
+    <title>Zero Distance v16 (Critical Break)</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -230,7 +230,7 @@
         <div id="boss-hud">
             <div id="boss-hud-name" class="boss-name">THE CORE</div>
             <div class="hp-bar-frame"><div id="hp-bar-fill"></div></div>
-            <div class="stun-label">BREAK GAUGE</div>
+            <div class="stun-label">BREAK GAUGE (BREAK TO DEAL 4x DAMAGE!)</div>
             <div class="stun-bar-frame"><div id="stun-bar-fill"></div></div>
         </div>
 
@@ -383,7 +383,7 @@ const Sprites = {
         [0,1,1,0,0,1,1,0,0,1,1,1,1,1,0,0,1,1,0,0,1,1,0,0,0],
         [1,1,1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1,1,1,0,0],
         [1,1,1,0,1,1,1,1,0,1,1,1,1,1,0,1,1,1,1,0,1,1,1,0,0],
-        [1,1,1,0,0,1,1,0,0,1,1,1,1,1,0,0,1,1,0,0,1,1,1,0,0],
+        [1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,0,1,1,0,1,1,1,1,0,0],
         [1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,0,0],
         [1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0],
         [1,1,1,1,1,1,1,1,0,0,1,1,1,0,0,1,1,1,1,1,1,1,1,0,0],
@@ -920,7 +920,7 @@ class Player {
 
         if (Input.shot.down && this.shootCooldown <= 0) {
             this.shoot();
-            this.shootCooldown = this.rapidTimer > 0 ? 4 : (this.laserTimer > 0 ? 25 : 8);
+            this.shootCooldown = this.rapidTimer > 0 ? 3 : (this.laserTimer > 0 ? 25 : 8);
         }
     }
 
@@ -928,7 +928,7 @@ class Player {
         const spread = (Math.random() - 0.5) * 0.1;
         
         if (this.laserTimer > 0) {
-            // Laser Shot
+            // Laser Shot - buffed damage in bullet class
             bullets.push(new Bullet(this.x, this.y, this.angle, true)); // piercing
             AudioSys.playLaser();
             shakeIntensity = 5;
@@ -1157,8 +1157,9 @@ class Boss extends Enemy {
         this.y = -200; 
         this.pixelSize = 6; 
         this.size = 25 * this.pixelSize;
-        this.hp = 300;
-        this.maxHp = 300;
+        // Boss HP Reduced
+        this.hp = 250;
+        this.maxHp = 250;
         this.speed = 1.0;
         this.color = '#aa00ff';
         this.isBoss = true;
@@ -1174,15 +1175,15 @@ class Boss extends Enemy {
         this.stunTimer = 0;
 
         if (this.bossType === 1) { // CHASER
-            this.speed = 2.5; // Slightly slower than before
+            this.speed = 2.5; 
             this.color = '#ff3300';
             this.sprite = Sprites.boss_chaser;
             this.state = 'chase'; 
             this.stateTimer = 0;
         } else if (this.bossType === 2) { // TITAN
             this.speed = 0.5;
-            this.hp = 500;
-            this.maxHp = 500;
+            this.hp = 400; // Reduced from 500
+            this.maxHp = 400;
             this.color = '#444444';
             this.sprite = Sprites.boss_titan;
         } else { 
@@ -1255,7 +1256,7 @@ class Boss extends Enemy {
             if (this.state === 'chase') {
                 this.x += Math.cos(this.angle) * this.speed;
                 this.y += Math.sin(this.angle) * this.speed;
-                if (this.stateTimer > 240) { // Longer chase but slower
+                if (this.stateTimer > 240) { 
                     this.state = 'tired';
                     this.stateTimer = 0;
                     this.color = '#555555'; 
@@ -1263,7 +1264,7 @@ class Boss extends Enemy {
             } else { 
                 this.x += Math.cos(this.angle) * 0.2;
                 this.y += Math.sin(this.angle) * 0.2;
-                if (this.stateTimer > 180) { // Longer rest
+                if (this.stateTimer > 180) { 
                     this.state = 'chase';
                     this.stateTimer = 0;
                     this.color = '#ff3300';
@@ -1275,7 +1276,6 @@ class Boss extends Enemy {
                 }
             }
         } else if (this.bossType === 2) { // TITAN
-            // Moves very slowly towards center then stops mostly
             const distToCenter = Math.hypot(width/2 - this.x, height/2 - this.y);
             if (distToCenter > 50) {
                 const angleToCenter = Math.atan2(height/2 - this.y, width/2 - this.x);
@@ -1284,16 +1284,13 @@ class Boss extends Enemy {
             }
             
             this.shootTimer++;
-            // Heavy fire
             if (this.shootTimer > 90) {
-                // Ring of bullets
                 for(let i=0; i<8; i++) {
                     let b = new EnemyBullet(this.x, this.y, (Math.PI*2/8)*i + frameCount*0.01);
                     b.size = 10;
                     b.speed = 3;
                     enemyBullets.push(b);
                 }
-                // Spawn mine occasionally
                 if (Math.random() < 0.3) {
                     let m = new Enemy(7);
                     m.x = this.x + (Math.random()-0.5)*100;
@@ -1309,7 +1306,6 @@ class Boss extends Enemy {
         this.y = Math.max(this.size, Math.min(height - this.size, this.y));
         
         const dist = Math.hypot(dx, dy);
-        // More forgiving Zero Distance for Bosses
         this.isZeroDist = (dist < 120); 
     }
 
@@ -1336,7 +1332,6 @@ class Boss extends Enemy {
             drawColor = frameCount % 4 < 2 ? '#00ffff' : '#0000ff';
         } else {
             if (this.hp < 100 && frameCount % 6 < 3) drawColor = '#ff0000';
-            // Flash white on Zero Dist
             if (this.isZeroDist && frameCount % 4 < 2) drawColor = '#ffffff'; 
             if (this.bossType === 1 && this.state === 'tired') {
                  if (frameCount % 20 < 10) drawColor = '#888888';
@@ -1387,6 +1382,7 @@ class Bullet {
         this.dead = false;
         this.piercing = piercing;
         this.size = piercing ? 8 : 4;
+        this.damage = piercing ? 15 : 1; // Buffed Laser Damage
     }
     update() {
         this.x += Math.cos(this.angle) * this.speed;
@@ -1538,7 +1534,7 @@ function update() {
 
     if (!bossActive && score >= nextBossScore) {
         spawnBoss();
-        nextBossScore += 5000;
+        nextBossScore += 8000; // Increased interval
         return; 
     }
 
@@ -1552,8 +1548,8 @@ function update() {
             else if (r < 0.7) type = 3; 
             else if (r < 0.8) type = 4; 
             else if (r < 0.9) type = 5; 
-            else if (r < 0.95) type = 6; // Orbiter
-            else type = 7; // Mine
+            else if (r < 0.95) type = 6; 
+            else type = 7; 
             
             enemies.push(new Enemy(type));
         }
@@ -1577,20 +1573,22 @@ function update() {
             AudioSys.playPowerup();
             
             if (item.type === 'p') {
-                player.powerUpTimer = 600; 
+                player.powerUpTimer = 900; // Extended
                 popups.push(new FloatingText(player.x, player.y - 30, "TRIPLE!", "#fa0", 12));
             } else if (item.type === 's') {
                 player.shield = Math.min(player.shield + 1, 3); 
                 popups.push(new FloatingText(player.x, player.y - 30, "SHIELD UP!", "#0af", 12));
             } else if (item.type === 'r') {
-                player.rapidTimer = 600; 
+                player.rapidTimer = 900; // Extended
                 popups.push(new FloatingText(player.x, player.y - 30, "RAPID!", "#f40", 12));
             } else if (item.type === 'b') {
                 AudioSys.playBomb();
                 shakeIntensity = 20;
                 enemyBullets = []; 
                 enemies.forEach(e => {
-                    e.hp -= 5;
+                    let dmg = 5;
+                    if(e.isBoss) dmg = 50; // Bomb damage buff against boss
+                    e.hp -= dmg;
                     const angle = Math.atan2(e.y - player.y, e.x - player.x);
                     e.vx = Math.cos(angle) * 20;
                     e.vy = Math.sin(angle) * 20;
@@ -1601,13 +1599,13 @@ function update() {
                     particles.push(new Particle(Math.random()*width, Math.random()*height, '#a0f', 10, 30));
                 }
             } else if (item.type === 'l') { 
-                player.laserTimer = 400; 
+                player.laserTimer = 600; // Extended
                 popups.push(new FloatingText(player.x, player.y - 30, "LASER!", "#0ff", 14));
             } else if (item.type === 'h') { 
                 player.shield = 3;
                 popups.push(new FloatingText(player.x, player.y - 30, "FULL REPAIR!", "#0f8", 12));
             } else if (item.type === 'w') { 
-                player.wideTimer = 600;
+                player.wideTimer = 900; // Extended
                 popups.push(new FloatingText(player.x, player.y - 30, "WIDE SHOT!", "#ff0", 12));
             }
         }
@@ -1644,23 +1642,22 @@ function update() {
                 if (!b.piercing) b.dead = true; 
                 
                 const impactDist = Math.hypot(player.x - e.x, player.y - e.y);
-                const ZERO_DIST = e.isBoss ? 120 : 90; // Increased range for boss
+                const ZERO_DIST = e.isBoss ? 120 : 90; 
                 const MID_DIST = 350; 
                 
                 if (impactDist < ZERO_DIST || (e.isBoss && e.isStunned)) {
                     // ZERO DISTANCE or STUNNED BONUS
                     let damage = 5;
-                    if (b.piercing) damage = 10; 
+                    if (b.piercing) damage = b.damage; 
                     if (!e.isBoss) damage = 100;
                     
-                    if (e.isBoss && e.isStunned) damage *= 2;
+                    if (e.isBoss && e.isStunned) damage *= 4; // Critical Break!
 
                     e.hp -= damage;
                     
                     if (e.isBoss) {
-                        shakeIntensity = 5; // Hit feedback shake
+                        shakeIntensity = 5; 
                         AudioSys.playHit();
-                        // Spawn flash particle
                         particles.push(new Particle(e.x, e.y, '#ffffff', 2, 5));
                     }
 
@@ -1694,7 +1691,6 @@ function update() {
                             bossHud.style.display = 'none';
                         }
                     } else {
-                        // Alive
                         if (e.isBoss && e.isStunned) {
                              popups.push(new FloatingText(e.x, e.y, "SMASH!!", "#fff", 12));
                         } else {
@@ -1705,9 +1701,8 @@ function update() {
 
                 } else if (impactDist < MID_DIST) {
                     if (e.isBoss) {
-                        // STUN BUILD UP
                         if (!e.isStunned) {
-                            e.stun += 2; 
+                            e.stun += 3; // Stun faster
                             if (e.stun >= e.maxStun) {
                                 e.stun = e.maxStun;
                                 e.isStunned = true;
