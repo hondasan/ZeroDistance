@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zero Distance v5</title>
+    <title>Zero Distance v8</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
@@ -131,8 +131,33 @@
             background: rgba(0,0,0,0.5);
             padding: 20px 0;
         }
-        .warning-blink { animation: warnBlink 0.2s infinite; }
+        .warning-blink { animation: warnBlink 0.1s infinite; } /* 点滅速度アップ */
         @keyframes warnBlink { 0% {opacity:1;} 50% {opacity:0;} 100% {opacity:1;} }
+
+        /* Mobile Shot Button */
+        #mobile-shot-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            user-select: none;
+            touch-action: none;
+            z-index: 100;
+        }
+        #mobile-shot-btn:active {
+            background: rgba(255, 0, 0, 0.6);
+            transform: scale(0.95);
+        }
 
         /* Start / Game Over */
         #overlay-screen {
@@ -148,7 +173,7 @@
             border: 4px solid #fff;
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
             min-width: 300px;
-            z-index: 100;
+            z-index: 200;
         }
 
         h1 { font-size: 32px; margin: 0 0 20px 0; color: #fff; text-shadow: 4px 4px 0 #333; line-height: 1.2; }
@@ -162,11 +187,11 @@
             bottom: 30px;
             width: 100%;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             padding: 0 40px;
             box-sizing: border-box;
             font-size: 10px;
-            color: rgba(255, 255, 255, 0.3);
+            color: rgba(255, 255, 255, 0.5);
         }
         .hidden { display: none !important; }
     </style>
@@ -175,7 +200,6 @@
 
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
-    
     <div class="scanlines"></div>
     <div class="vignette"></div>
 
@@ -200,23 +224,22 @@
             <div class="hp-bar-frame"><div id="hp-bar-fill"></div></div>
         </div>
 
+        <div id="mobile-shot-btn">SHOT</div>
+
         <div id="overlay-screen">
             <h1>ZERO<br>DISTANCE</h1>
             <div class="subtitle">Risk It All</div>
-            
             <div id="screen-content">
-                <!-- Javascript will inject content here -->
                 <div class="blink">[ LOADING... ]</div>
             </div>
-            
             <div class="instruction" style="margin-top: 30px; font-size: 8px; color: #666;">
-                PC: WASD + MOUSE<br>MOBILE: TOUCH DRAG + TAP
+                <span style="color:#0ff">AUTO AIM ENABLED</span><br><br>
+                PC: [SPACE] or [CLICK] to SHOOT<br>MOBILE: [SHOT BUTTON] to SHOOT
             </div>
         </div>
 
         <div class="controls-guide" id="mobile-guide" style="display:none;">
-            <div>MOVE</div>
-            <div>SHOOT</div>
+            <div style="margin-right: auto; margin-left: 20px;">DRAG TO MOVE</div>
         </div>
     </div>
 </div>
@@ -224,7 +247,7 @@
 <script>
 /**
  * ------------------------------------------------------------------
- * SPRITES (奇数幅・正中線意識)
+ * SPRITES
  * ------------------------------------------------------------------
  */
 const Sprites = {
@@ -254,7 +277,6 @@ const Sprites = {
         [0,0,1,0,1,0,1,0,1,0,0],
         [0,0,1,0,0,0,0,0,1,0,0]
     ],
-    // 25x25 Boss Sprite
     boss: [
         [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
         [0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
@@ -297,6 +319,26 @@ const Sprites = {
         [1,1,0,0,0,1,1],
         [0,1,1,1,1,1,0],
         [0,0,1,1,1,0,0]
+    ],
+    // New: Rapid (R)
+    item_r: [
+        [0,1,1,1,1,1,0],
+        [1,1,0,0,0,1,1],
+        [1,0,0,1,1,1,0],
+        [1,0,0,1,1,0,0],
+        [1,0,0,1,0,1,0],
+        [1,1,0,0,0,1,1],
+        [0,1,1,1,1,1,0]
+    ],
+    // New: Bomb (B)
+    item_b: [
+        [0,1,1,1,1,1,0],
+        [1,1,0,0,0,1,1],
+        [1,0,0,1,1,0,1],
+        [1,0,0,1,0,1,1],
+        [1,0,0,1,1,0,1],
+        [1,1,0,0,0,1,1],
+        [0,1,1,1,1,1,0]
     ]
 };
 
@@ -357,9 +399,14 @@ const AudioSys = {
         this.playTone(600, 'sine', 0.1, 0.1);
         setTimeout(() => this.playTone(1200, 'square', 0.2, 0.1), 100);
     },
+    playBomb: function() {
+        if (!this.ctx) return;
+        this.playTone(100, 'sawtooth', 0.5, 0.5);
+        setTimeout(() => this.playTone(50, 'square', 0.5, 0.5), 100);
+    },
     playWarning: function() {
-        this.playTone(150, 'sawtooth', 0.5, 0.3);
-        setTimeout(() => this.playTone(100, 'sawtooth', 0.5, 0.3), 200);
+        this.playTone(150, 'sawtooth', 0.2, 0.3); // 短く
+        setTimeout(() => this.playTone(100, 'sawtooth', 0.2, 0.3), 100);
     },
     playExplosion: function() {
         if (!this.ctx) return;
@@ -398,10 +445,14 @@ const warningOverlay = document.getElementById('warning-overlay');
 const bossHud = document.getElementById('boss-hud');
 const hpBarFill = document.getElementById('hp-bar-fill');
 const mobileGuide = document.getElementById('mobile-guide');
+const mobileShotBtn = document.getElementById('mobile-shot-btn');
 
 let width, height;
 const isMobile = 'ontouchstart' in window;
-if (isMobile) mobileGuide.style.display = 'flex';
+if (isMobile) {
+    mobileGuide.style.display = 'flex';
+    mobileShotBtn.style.display = 'flex';
+}
 
 function resize() {
     width = window.innerWidth;
@@ -416,23 +467,18 @@ resize();
 const STATE = { TITLE: 0, PLAYING: 1, BOSS_WARNING: 2, GAMEOVER: 3 };
 let currentState = STATE.TITLE;
 let score = 0;
-let highScore = 0; // High Score Variable
+let highScore = 0;
 let frameCount = 0;
 let shakeIntensity = 0;
 let freezeTimer = 0;
 let nextBossScore = 3000;
 let bossActive = false;
 
-// --- High Score Logic ---
-// Initialize High Score from Local Storage
+// High Score
 try {
     const saved = localStorage.getItem('ZeroDistance_HighScore');
-    if (saved) {
-        highScore = parseInt(saved, 10);
-    }
-} catch(e) {
-    console.log("Local Storage not supported");
-}
+    if (saved) highScore = parseInt(saved, 10);
+} catch(e) { console.log("LS Error"); }
 
 function showTitleScreen() {
     currentState = STATE.TITLE;
@@ -445,77 +491,87 @@ function showTitleScreen() {
     overlayScreen.classList.remove('hidden');
     bossHud.style.display = 'none';
     warningOverlay.style.display = 'none';
+    mobileShotBtn.style.display = 'none';
 }
 
-// 初期表示
 showTitleScreen();
-
 
 const Input = {
     keys: {},
     mouse: { x: 0, y: 0, down: false },
+    shot: { down: false },
     touch: {
-        leftId: null, rightId: null,
-        leftStart: {x:0, y:0}, leftCurr: {x:0, y:0},
-        rightCurr: {x:0, y:0}, rightDown: false
+        id: null, 
+        start: {x:0, y:0},
+        curr: {x:0, y:0},
+        active: false
     }
 };
 
-// Input Handling
-window.addEventListener('keydown', e => Input.keys[e.key] = true);
-window.addEventListener('keyup', e => Input.keys[e.key] = false);
+window.addEventListener('keydown', e => {
+    Input.keys[e.key] = true;
+    if (e.code === 'Space' || e.key === 'z' || e.key === 'Z') Input.shot.down = true;
+});
+window.addEventListener('keyup', e => {
+    Input.keys[e.key] = false;
+    if (e.code === 'Space' || e.key === 'z' || e.key === 'Z') Input.shot.down = false;
+});
 window.addEventListener('mousemove', e => { Input.mouse.x = e.clientX; Input.mouse.y = e.clientY; });
-window.addEventListener('mousedown', () => Input.mouse.down = true);
-window.addEventListener('mouseup', () => Input.mouse.down = false);
+window.addEventListener('mousedown', () => Input.shot.down = true);
+window.addEventListener('mouseup', () => Input.shot.down = false);
 
-// Global Touch Handlers
-window.addEventListener('touchstart', e => {
-    if (e.target.closest('#overlay-screen')) return; 
+mobileShotBtn.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    for (let i = 0; i < e.changedTouches.length; i++) {
-        const t = e.changedTouches[i];
-        if (t.clientX < width / 2) {
-            if (Input.touch.leftId === null) {
-                Input.touch.leftId = t.identifier;
-                Input.touch.leftStart = { x: t.clientX, y: t.clientY };
-                Input.touch.leftCurr = { x: t.clientX, y: t.clientY };
-            }
-        } else {
-            if (Input.touch.rightId === null) {
-                Input.touch.rightId = t.identifier;
-                Input.touch.rightDown = true;
-                Input.touch.rightCurr = { x: t.clientX, y: t.clientY };
-            }
-        }
+    e.stopPropagation();
+    Input.shot.down = true;
+    mobileShotBtn.style.background = 'rgba(255, 0, 0, 0.6)';
+}, { passive: false });
+
+mobileShotBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    Input.shot.down = false;
+    mobileShotBtn.style.background = 'rgba(255, 0, 0, 0.3)';
+}, { passive: false });
+
+window.addEventListener('touchstart', e => {
+    if (e.target.closest('#mobile-shot-btn') || e.target.closest('#overlay-screen')) return; 
+    e.preventDefault();
+    if (!Input.touch.active && e.changedTouches.length > 0) {
+        const t = e.changedTouches[0];
+        Input.touch.id = t.identifier;
+        Input.touch.start = { x: t.clientX, y: t.clientY };
+        Input.touch.curr = { x: t.clientX, y: t.clientY };
+        Input.touch.active = true;
     }
 }, { passive: false });
 
 window.addEventListener('touchmove', e => {
     e.preventDefault();
-    for (let i = 0; i < e.changedTouches.length; i++) {
-        const t = e.changedTouches[i];
-        if (t.identifier === Input.touch.leftId) Input.touch.leftCurr = { x: t.clientX, y: t.clientY };
-        if (t.identifier === Input.touch.rightId) Input.touch.rightCurr = { x: t.clientX, y: t.clientY };
+    if (Input.touch.active) {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === Input.touch.id) {
+                Input.touch.curr = { x: e.changedTouches[i].clientX, y: e.changedTouches[i].clientY };
+                break;
+            }
+        }
     }
 }, { passive: false });
 
 window.addEventListener('touchend', e => {
     e.preventDefault();
-    for (let i = 0; i < e.changedTouches.length; i++) {
-        const t = e.changedTouches[i];
-        if (t.identifier === Input.touch.leftId) {
-            Input.touch.leftId = null;
-            Input.touch.leftStart = { x:0, y:0 };
-            Input.touch.leftCurr = { x:0, y:0 };
-        }
-        if (t.identifier === Input.touch.rightId) {
-            Input.touch.rightId = null;
-            Input.touch.rightDown = false;
+    if (Input.touch.active) {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === Input.touch.id) {
+                Input.touch.active = false;
+                Input.touch.id = null;
+                break;
+            }
         }
     }
 }, { passive: false });
 
 const handleStartInteraction = (e) => {
+    if (e.target.closest('#mobile-shot-btn')) return;
     e.stopPropagation();
     if(e.cancelable && e.type === 'touchstart') e.preventDefault();
 
@@ -534,6 +590,7 @@ function startGame() {
     player = new Player();
     enemies = [];
     bullets = [];
+    enemyBullets = []; // ★リトライ時に敵弾を全消去
     particles = [];
     popups = [];
     items = [];
@@ -548,6 +605,7 @@ function startGame() {
     overlayScreen.classList.add('hidden');
     bossHud.style.display = 'none';
     warningOverlay.style.display = 'none';
+    if (isMobile) mobileShotBtn.style.display = 'flex';
     currentState = STATE.PLAYING;
     loop();
 }
@@ -561,6 +619,7 @@ function spawnBoss() {
     currentState = STATE.BOSS_WARNING;
     warningOverlay.style.display = 'block';
     let count = 0;
+    // 演出を短縮 (300ms * 4回 = 1.2秒)
     const interval = setInterval(() => {
         AudioSys.playWarning();
         count++;
@@ -572,9 +631,9 @@ function spawnBoss() {
                 bossActive = true;
                 enemies.push(new Boss());
                 bossHud.style.display = 'block';
-            }, 1000);
+            }, 500); // 待機も短縮
         }
-    }, 600);
+    }, 300);
 }
 
 /**
@@ -592,7 +651,8 @@ class Player {
         this.angle = 0; 
         this.color = '#00ffff'; 
         this.shootCooldown = 0;
-        this.powerUpTimer = 0;
+        this.powerUpTimer = 0; // Wide Shot
+        this.rapidTimer = 0;   // Rapid Fire (New)
         this.shield = false;
     }
 
@@ -604,20 +664,26 @@ class Player {
         if (Input.keys['a'] || Input.keys['ArrowLeft']) dx -= 1;
         if (Input.keys['d'] || Input.keys['ArrowRight']) dx += 1;
 
-        if (Input.touch.leftId !== null) {
-            const tx = Input.touch.leftCurr.x - Input.touch.leftStart.x;
-            const ty = Input.touch.leftCurr.y - Input.touch.leftStart.y;
+        if (Input.touch.active) {
+            const tx = Input.touch.curr.x - Input.touch.start.x;
+            const ty = Input.touch.curr.y - Input.touch.start.y;
             const dist = Math.hypot(tx, ty);
-            if (dist > 5) {
+            const deadZone = 10;
+            if (dist > deadZone) {
                 dx = tx / dist;
                 dy = ty / dist;
+                const speedFactor = Math.min(dist / 50, 1.0);
+                dx *= speedFactor;
+                dy *= speedFactor;
             }
         }
 
-        if (dx !== 0 || dy !== 0) {
+        if (!Input.touch.active && (dx !== 0 || dy !== 0)) {
             const length = Math.hypot(dx, dy);
-            dx /= length;
-            dy /= length;
+            if (length > 1) { 
+                dx /= length;
+                dy /= length;
+            }
         }
 
         this.x += dx * this.speed;
@@ -627,20 +693,32 @@ class Player {
 
         if (this.shootCooldown > 0) this.shootCooldown--;
         if (this.powerUpTimer > 0) this.powerUpTimer--;
+        if (this.rapidTimer > 0) this.rapidTimer--;
         
-        let shootTarget = null;
-        if (Input.mouse.down) {
-            shootTarget = { x: Input.mouse.x, y: Input.mouse.y };
-        } else if (Input.touch.rightDown) {
-            shootTarget = { x: Input.touch.rightCurr.x, y: Input.touch.rightCurr.y };
+        // Auto Aim
+        let nearestEnemy = null;
+        let minDist = Infinity;
+        const rangeLimit = Math.max(width, height) * 0.9; 
+
+        enemies.forEach(e => {
+            const d = Math.hypot(e.x - this.x, e.y - this.y);
+            if (d < minDist && d < rangeLimit) {
+                minDist = d;
+                nearestEnemy = e;
+            }
+        });
+
+        if (nearestEnemy) {
+            this.angle = Math.atan2(nearestEnemy.y - this.y, nearestEnemy.x - this.x);
+        } else if (dx !== 0 || dy !== 0) {
+            this.angle = Math.atan2(dy, dx);
         }
 
-        if (shootTarget) {
-            this.angle = Math.atan2(shootTarget.y - this.y, shootTarget.x - this.x);
-            if (this.shootCooldown <= 0) {
-                this.shoot();
-                this.shootCooldown = 8;
-            }
+        // Manual Fire with Rapid Check
+        if (Input.shot.down && this.shootCooldown <= 0) {
+            this.shoot();
+            // ラピッドアイテム所持時はクールダウン半減
+            this.shootCooldown = this.rapidTimer > 0 ? 4 : 8;
         }
     }
 
@@ -662,7 +740,13 @@ class Player {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle + Math.PI/2);
-        drawPixelArt(ctx, Sprites.player, this.pixelSize, this.shield ? '#ffffff' : this.color);
+        
+        let color = this.color;
+        if (this.shield) color = '#ffffff';
+        else if (this.rapidTimer > 0 && frameCount % 4 < 2) color = '#ff8800'; // Rapid時は点滅
+        
+        drawPixelArt(ctx, Sprites.player, this.pixelSize, color);
+        
         if (this.shield) {
             ctx.beginPath();
             ctx.arc(0, 0, 25, 0, Math.PI*2);
@@ -842,7 +926,7 @@ class Item {
     constructor(x, y, type) {
         this.x = x;
         this.y = y;
-        this.type = type; // 'p' or 's'
+        this.type = type; // 'p', 's', 'r', 'b'
         this.life = 600; 
         this.pixelSize = 3;
         this.size = 20;
@@ -855,8 +939,14 @@ class Item {
         if (this.life < 100 && this.life % 10 < 5) return;
         ctx.save();
         ctx.translate(this.x, this.y);
-        const sprite = this.type === 'p' ? Sprites.item_p : Sprites.item_s;
-        const color = this.type === 'p' ? '#ffaa00' : '#00aaff';
+        let sprite, color;
+        // アイテム描画分岐
+        switch(this.type) {
+            case 'p': sprite = Sprites.item_p; color = '#ffaa00'; break;
+            case 's': sprite = Sprites.item_s; color = '#00aaff'; break;
+            case 'r': sprite = Sprites.item_r; color = '#ff4400'; break;
+            case 'b': sprite = Sprites.item_b; color = '#aa00ff'; break;
+        }
         drawPixelArt(ctx, sprite, this.pixelSize, color);
         ctx.restore();
     }
@@ -930,14 +1020,12 @@ function update() {
         return;
     }
 
-    // Boss Spawn Logic
     if (!bossActive && score >= nextBossScore) {
         spawnBoss();
         nextBossScore += 5000;
         return; 
     }
 
-    // Enemy Spawn
     if (!bossActive) {
         if (frameCount % Math.max(20, 60 - Math.floor(frameCount / 500)) === 0) {
             enemies.push(new Enemy());
@@ -952,21 +1040,46 @@ function update() {
     enemyBullets.forEach(b => b.update());
     enemyBullets = enemyBullets.filter(b => !b.dead);
 
-    // Items
     items.forEach(i => i.update());
     items = items.filter(i => i.life > 0);
-    // Item Pickup
+    
+    // アイテム取得処理
     items.forEach(item => {
         const dist = Math.hypot(player.x - item.x, player.y - item.y);
         if (dist < player.size + item.size) {
             item.life = 0;
             AudioSys.playPowerup();
+            
             if (item.type === 'p') {
                 player.powerUpTimer = 600; 
                 popups.push(new FloatingText(player.x, player.y - 30, "WIDE SHOT!", "#fa0", 12));
             } else if (item.type === 's') {
                 player.shield = true;
                 popups.push(new FloatingText(player.x, player.y - 30, "SHIELD!", "#0af", 12));
+            } else if (item.type === 'r') {
+                player.rapidTimer = 600; // 10秒間連射
+                popups.push(new FloatingText(player.x, player.y - 30, "RAPID!", "#f40", 12));
+            } else if (item.type === 'b') {
+                // Bomb Effect
+                AudioSys.playBomb();
+                shakeIntensity = 20;
+                enemyBullets = []; // 敵弾全消去
+                // 全敵ダメージ
+                enemies.forEach(e => {
+                    e.hp -= 5;
+                    // ノックバック
+                    const angle = Math.atan2(e.y - player.y, e.x - player.x);
+                    e.vx = Math.cos(angle) * 20;
+                    e.vy = Math.sin(angle) * 20;
+                    // エフェクト
+                    for(let i=0; i<5; i++) particles.push(new Particle(e.x, e.y, '#fff', 5, 20));
+                });
+                popups.push(new FloatingText(player.x, player.y - 40, "EMP BLAST!", "#d0f", 16));
+                
+                // 画面全体フラッシュ的なパーティクル
+                for(let i=0; i<20; i++) {
+                    particles.push(new Particle(Math.random()*width, Math.random()*height, '#a0f', 10, 30));
+                }
             }
         }
     });
@@ -974,7 +1087,6 @@ function update() {
     enemies.forEach((e) => {
         e.update();
         
-        // Player Collision
         const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
         if (distToPlayer < (player.size/3 + e.size/3)) {
             if (player.shield) {
@@ -1005,9 +1117,8 @@ function update() {
                 const MID_DIST = 250;
                 
                 if (impactDist < ZERO_DIST) {
-                    // ZERO DISTANCE
                     let damage = 5;
-                    if (!e.isBoss) damage = 100; // 雑魚は即死
+                    if (!e.isBoss) damage = 100;
                     
                     e.hp -= damage;
                     
@@ -1017,15 +1128,22 @@ function update() {
                     }
 
                     if (e.hp <= 0) {
-                        // Kill
                         freezeTimer = e.isBoss ? 20 : 5; 
                         shakeIntensity = e.isBoss ? 30 : 15;
                         AudioSys.playExplosion();
                         score += e.isBoss ? 5000 : 1000;
                         popups.push(new FloatingText(e.x, e.y, e.isBoss ? "BOSS DESTROYED!" : "ZERO!", "#00ffff", e.isBoss ? 25 : 20));
                         
-                        if (!e.isBoss && Math.random() < 0.2) {
-                            items.push(new Item(e.x, e.y, Math.random() > 0.5 ? 'p' : 's'));
+                        if (!e.isBoss && Math.random() < 0.25) { // ドロップ率微増
+                            // ランダムアイテム選出
+                            const rand = Math.random();
+                            let type = 'p';
+                            if (rand < 0.25) type = 'p';
+                            else if (rand < 0.5) type = 's';
+                            else if (rand < 0.75) type = 'r';
+                            else type = 'b';
+                            
+                            items.push(new Item(e.x, e.y, type));
                         }
 
                         for(let i=0; i< (e.isBoss ? 50 : 15); i++) particles.push(new Particle(e.x, e.y, '#ff0044', 8, 30));
@@ -1040,7 +1158,6 @@ function update() {
                     }
 
                 } else if (impactDist < MID_DIST) {
-                    // MID RANGE
                     if (e.isBoss) {
                         e.hp -= 0.2; 
                         AudioSys.playRicochet(); 
@@ -1059,7 +1176,6 @@ function update() {
                         for(let i=0; i<8; i++) particles.push(new Particle(e.x, e.y, '#ff0044', 4, 20));
                     }
                 } else {
-                    // FAR RANGE
                     for(let i=0; i<2; i++) particles.push(new Particle(b.x, b.y, '#888', 2, 5));
                     AudioSys.playRicochet();
                     popups.push(new FloatingText(e.x, e.y - 20, "TOO FAR", "#555", 8));
@@ -1068,7 +1184,6 @@ function update() {
         });
     });
     
-    // Player vs Enemy Bullets
     enemyBullets.forEach(b => {
         const dist = Math.hypot(player.x - b.x, player.y - b.y);
         if (dist < player.size/2 + b.size/2) {
@@ -1090,7 +1205,6 @@ function update() {
     popups.forEach(p => p.update());
     popups = popups.filter(p => p.life > 0);
 
-    // Update Boss HUD
     if (bossActive) {
         const boss = enemies.find(e => e.isBoss);
         if (boss) {
@@ -1131,14 +1245,14 @@ function draw() {
     player.draw(ctx);
     popups.forEach(p => p.draw(ctx));
 
-    if (Input.touch.leftId !== null) {
+    if (Input.touch.active) {
         ctx.beginPath();
-        ctx.arc(Input.touch.leftStart.x, Input.touch.leftStart.y, 40, 0, Math.PI * 2);
+        ctx.arc(Input.touch.start.x, Input.touch.start.y, 40, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
         ctx.lineWidth = 2;
         ctx.stroke();
         ctx.beginPath();
-        ctx.arc(Input.touch.leftCurr.x, Input.touch.leftCurr.y, 15, 0, Math.PI * 2);
+        ctx.arc(Input.touch.curr.x, Input.touch.curr.y, 15, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
         ctx.fill();
     }
@@ -1149,7 +1263,6 @@ function draw() {
 function gameOver() {
     currentState = STATE.GAMEOVER;
     
-    // High Score Update Logic
     let isNewRecord = false;
     if (score > highScore) {
         highScore = score;
@@ -1175,6 +1288,7 @@ function gameOver() {
     overlayScreen.classList.remove('hidden');
     bossHud.style.display = 'none';
     warningOverlay.style.display = 'none';
+    mobileShotBtn.style.display = 'none';
     shakeIntensity = 20;
     AudioSys.playExplosion();
 }
